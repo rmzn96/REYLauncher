@@ -817,10 +817,10 @@ public class SetupActivity extends Activity {
             TextView s = subtitle(tr(
                     "1. Open TV Settings \u2192 System \u2192 About and click Build 7 times to unlock Developer Options.\n"
                     + "2. Open Settings \u2192 System \u2192 Developer Options and enable USB Debugging / Network Debugging.\n"
-                    + "3. Return here and select Grant Permissions Now.",
+                    + "3. Return here and select Grant Permissions Now. REYLauncher turns debugging off again when it is done.",
                     "1. TV Ayarları \u2192 Sistem \u2192 Hakkında menüsüne gidin ve Geliştirici Seçeneklerini açmak için Yapı Numarası'na 7 kez basın.\n"
                     + "2. Ayarlar \u2192 Sistem \u2192 Geliştirici Seçenekleri'nden USB / Ağ Hata Ayıklamayı açın.\n"
-                    + "3. Buraya dönüp İzinleri Şimdi Ver'i seçin."));
+                    + "3. Buraya dönüp İzinleri Şimdi Ver'i seçin. İş bitince REYLauncher hata ayıklamayı yeniden kapatır."));
             ((LinearLayout.LayoutParams) s.getLayoutParams()).width = u(620);
             ((LinearLayout.LayoutParams) s.getLayoutParams()).bottomMargin = u(16);
             LinearLayout l = scrollableList();
@@ -889,8 +889,8 @@ public class SetupActivity extends Activity {
         android.app.AlertDialog progress = new android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                 .setTitle(tr("Easy Setup (ADB)", "Kolay Kurulum (ADB)"))
                 .setMessage(tr(
-                        "Granting permissions via local ADB\u2026\n\nIf an \u201cAllow USB debugging?\u201d prompt appears on screen, check \u201cAlways allow\u201d and press Allow.",
-                        "Yerel ADB ile izinler veriliyor\u2026\n\nEkranda \u201cUSB hata ayıklamaya izin verilsin mi?\u201d penceresi çıkarsa \u201cHer zaman izin ver\u201di işaretleyip İzin Ver'e basın."))
+                        "Granting permissions via local ADB\u2026\n\nWhen \u201cAllow USB debugging?\u201d appears, press Allow (\u201cAlways allow\u201d is not needed). Afterwards REYLauncher turns ADB off and deletes its key.",
+                        "Yerel ADB ile izinler veriliyor\u2026\n\nEkranda \u201cUSB hata ayıklamaya izin verilsin mi?\u201d çıkınca İzin Ver'e basın (\u201cHer zaman izin ver\u201d gerekmez). Ardından REYLauncher ADB'yi kapatır ve anahtarını siler."))
                 .setCancelable(false)
                 .create();
         progress.show();
@@ -903,8 +903,10 @@ public class SetupActivity extends Activity {
             }
             if (success) {
                 android.widget.Toast.makeText(this,
-                        tr("All permissions granted automatically!", "Tüm izinler otomatik olarak verildi!"),
-                        android.widget.Toast.LENGTH_SHORT).show();
+                        tr("All permissions granted. ADB is being turned off again.", "Tüm izinler verildi. ADB yeniden kapatılıyor."),
+                        android.widget.Toast.LENGTH_LONG).show();
+                // Setup was the only reason ADB was needed: switch it off right away.
+                LocalAdb.closeAdbNow(this, null);
                 next();
             } else {
                 permMode = 1;
