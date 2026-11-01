@@ -311,6 +311,12 @@ public class MainActivity extends Activity {
             }
         };
         registerReceiver(wakeReceiver, new IntentFilter(Intent.ACTION_SCREEN_ON));
+        screenOffReceiver = new BroadcastReceiver() {
+            @Override public void onReceive(Context c, Intent i) {
+                LocalAdb.closeOnScreenOff(c);  // ADB never stays open while the TV sleeps
+            }
+        };
+        registerReceiver(screenOffReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF));
         LocalAdb.ensureKeepAliveWatchdog(this);
     }
 
@@ -419,8 +425,11 @@ public class MainActivity extends Activity {
         boolean wasReturningFromSettings = returningFromSettings;
         if (!Scenes.isScenesLook(this)) {
             String ws = Profiles.homePrefs(this).getString("wallpaper", "photo:tessellated-pavement.jpg");
-            if (!ws.equals(wallStyle) || wallView.getDrawable() == null || (wasReturningFromSettings && "custom".equals(ws))) {
+            long classicTs = CustomMedia.getCustomClassicTimestamp(this);
+            boolean newBing = "custom".equals(ws) && classicTs != appliedClassicTs;
+            if (!ws.equals(wallStyle) || wallView.getDrawable() == null || (wasReturningFromSettings && "custom".equals(ws)) || newBing) {
                 wallStyle = ws;
+                appliedClassicTs = classicTs;
                 setWallpaper(ws);
             }
         }
@@ -531,6 +540,7 @@ public class MainActivity extends Activity {
             }
         }
         if (wakeReceiver != null) unregisterReceiver(wakeReceiver);
+        if (screenOffReceiver != null) unregisterReceiver(screenOffReceiver);
         handler.removeCallbacksAndMessages(null);
     }
 
@@ -1092,6 +1102,7 @@ public class MainActivity extends Activity {
                 if (Scenes.isScenesLook(this)) {
                     if (sceneHome != null) sceneHome.sceneView.syncSettings();
                 } else if (CUSTOM_WALL_KEY.equals(wallStyle)) {
+                    appliedClassicTs = CustomMedia.getCustomClassicTimestamp(this);
                     setWallpaper(wallStyle);
                 }
             });
@@ -2315,6 +2326,8 @@ public class MainActivity extends Activity {
     LiquidGlass weatherGlass;
     int avatarSize;
     FrameLayout pickerLayer;
+    BroadcastReceiver screenOffReceiver;
+    long appliedClassicTs = -1L;  // timestamp of the Bing photo the Classic background shows
     BroadcastReceiver wakeReceiver;
 
     /** Top shelf content: "suggest" (carousel) or "continue" (Continue Watching). */

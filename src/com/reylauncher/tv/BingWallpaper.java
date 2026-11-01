@@ -33,6 +33,8 @@ final class BingWallpaper {
     private static final String API = HOST + "/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=tr-TR";
     private static final int MAX_BYTES = 12 * 1024 * 1024;
     private static volatile boolean running;
+    private static final java.util.List<Done> waiting = new java.util.ArrayList<>();
+    private static final String K_FAILED_AT = "failed_at";
 
     interface Done {
         void onDone(boolean ok);
@@ -73,17 +75,23 @@ final class BingWallpaper {
         }
         boolean have = CustomMedia.hasCustomSceneWallpaper(c, 1);
         if (have && today().equals(prefs(c).getString(K_DAY, ""))) return;
+        // After a failed attempt, wait an hour before trying again on its own (Settings can still force it).
+        if (System.currentTimeMillis() - prefs(c).getLong(K_FAILED_AT, 0L) < 3600_000L) return;
         refreshNow(c, done);
     }
 
     /** Fetches today's photo now. {@code done} runs on a background thread (may be null). */
     static void refreshNow(Context c, Done done) {
-        if (c == null || running) {
+        if (c == null) {
             if (done != null) done.onDone(false);
             return;
         }
+        synchronized (waiting) {
+            if (done != null) waiting.add(done);
+            if (running) return;  // already downloading: everyone waiting is told when it finishes
+            running = true;
+        }
         final Context appCtx = c.getApplicationContext();
-        running = true;
         new Thread(() -> {
             boolean ok = false;
             try {
@@ -115,10 +123,15 @@ final class BingWallpaper {
                 }
             } catch (Throwable t) {
                 android.util.Log.w("REYLauncher", "Bing photo: " + t);
-            } finally {
+            }
+            prefs(appCtx).edit().putLong(K_FAILED_AT, ok ? 0L : System.currentTimeMillis()).apply();
+            java.util.List<Done> toTell;
+            synchronized (waiting) {
+                toTell = new java.util.ArrayList<>(waiting);
+                waiting.clear();
                 running = false;
             }
-            if (done != null) done.onDone(ok);
+            for (Done d : toTell) d.onDone(ok);
         }, "bing-wallpaper").start();
     }
 

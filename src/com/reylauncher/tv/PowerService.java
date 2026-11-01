@@ -167,10 +167,9 @@ public class PowerService extends AccessibilityService {
         ControlPanelOverlay.dismiss();
         RecentAppsOverlay.dismiss();
         instance = null;
-        Context appCtx = getApplicationContext();
         super.onDestroy();
-        // If auto-repair is on and the TV switched Accessibility off on its own, switch it back on (no ADB).
-        LocalAdb.scheduleKeepAliveRepair(appCtx, 2000L);
+        // No repair here: switching the service off in Android settings is respected (auto-repair only
+        // runs in the first minutes after the box starts).
     }
 
     /** Screen off / sleep. Returns false when the service isn't on. */

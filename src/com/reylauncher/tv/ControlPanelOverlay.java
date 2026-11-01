@@ -809,6 +809,13 @@ public final class ControlPanelOverlay {
             if (LocalAdb.startActivityViaAdbAsync(c, pkg, cls)) {
                 return true;
             }
+            // ADB is normally off in REYLauncher, so say why nothing opened.
+            try {
+                android.widget.Toast.makeText(c, I18n.s(c,
+                        "This screen can only be opened while ADB is on. Choose another screen for this tile.",
+                        "Bu ekran yalnızca ADB açıkken açılabiliyor. Bu kutucuk için başka bir ekran seçin."),
+                        android.widget.Toast.LENGTH_LONG).show();
+            } catch (Throwable ignored) { }
         }
         return false;
     }
@@ -960,7 +967,6 @@ public final class ControlPanelOverlay {
                 black.setFocusable(true);
                 black.setFocusableInTouchMode(true);
                 black.setClickable(true);
-                black.setKeepScreenOn(true);
                 black.setOnClickListener(v -> dismissScreenOff());
 
                 int type = PowerService.instance != null
@@ -971,8 +977,7 @@ public final class ControlPanelOverlay {
                         WindowManager.LayoutParams.MATCH_PARENT,
                         type,
                         WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-                                | WindowManager.LayoutParams.FLAG_FULLSCREEN
-                                | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+                                | WindowManager.LayoutParams.FLAG_FULLSCREEN,
                         PixelFormat.OPAQUE);
                 wm.addView(black, lp);
                 black.requestFocus();

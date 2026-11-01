@@ -851,6 +851,10 @@ public final class CustomMedia {
         return new int[]{1920, 1080};
     }
 
+    public static long getCustomClassicTimestamp(Context c) {
+        return c == null ? 0L : prefs(c).getLong(KEY_CLASSIC_WALL_TS, 0L);
+    }
+
     public static boolean hasCustomClassicWallpaper(Context c) {
         if (c == null) return false;
         File f = classicWallFile(c);

@@ -434,8 +434,8 @@ public class SetupActivity extends Activity {
     void profile() {
         title(tr("Create Your Profile", "Profilinizi Olu\u015fturun"));
         subtitle(tr(
-                "Your name and an avatar. Each profile keeps its own apps, background and Home Screen. Up to three people can have one.",
-                "Ad\u0131n\u0131z ve bir avatar. Her profil kendi uygulamalar\u0131n\u0131, arka plan\u0131n\u0131 ve Ana Ekran\u0131n\u0131 saklar. En fazla \u00fc\u00e7 ki\u015fi kullanabilir."));
+                "Your name and an avatar, shown on the Home Screen.",
+                "Ad\u0131n\u0131z ve bir avatar; Ana Ekranda g\u00f6r\u00fcn\u00fcr."));
         Profiles.Profile p = Profiles.current(this);
         LinearLayout l = list();
         View nameRow = option(l, tr("Name", "Ad"), I18n.profileName(this, p.name), false, () -> {

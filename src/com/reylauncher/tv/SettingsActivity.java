@@ -382,7 +382,8 @@ public class SettingsActivity extends Activity {
             if (src == null) return null;
             int w = 240, h = 135;
             Bitmap base = Bitmap.createScaledBitmap(src, w, h, true);
-            if (base != src) src.recycle();
+            // The Bing photo bitmap is shared with Home (CustomMedia's cache): never recycle it here.
+            if (base != src && !Scenes.CUSTOM_ID.equals(sceneId)) src.recycle();
             Canvas c = new Canvas(base);
             Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
             // Subtle dock-like color dots along the bottom before blurring, as seen in home-settings.jpg
@@ -1389,7 +1390,8 @@ public class SettingsActivity extends Activity {
                                  "Sistem açılışında otomatik başlatma kapatıldı."));
                 });
         row(tr("Auto-repair accessibility (no ADB)", "Erişilebilirliği otomatik onar (ADB'siz)"),
-                () -> LocalAdb.isKeepAliveEnabled(this) ? tr("On", "Açık") : tr("Off", "Kapalı"),
+                () -> !LocalAdb.canWriteSecureSettings(this) ? tr("Needs Easy Setup or Pair once", "Bir kez Kolay Kurulum / Eşleştir gerekli")
+                        : LocalAdb.isKeepAliveEnabled(this) ? tr("On", "Açık") : tr("Off", "Kapalı"),
                 () -> {
                     boolean next = !LocalAdb.isKeepAliveEnabled(this);
                     LocalAdb.setKeepAliveEnabled(this, next);
@@ -1403,8 +1405,8 @@ public class SettingsActivity extends Activity {
                             : tr("Auto-repair off.", "Otomatik onarım kapalı."));
                 });
 
-        infoNote(tr("Some TVs switch accessibility services off by themselves. With auto-repair on, REYLauncher switches its own Button Mapper service back on using the secure-settings permission granted once during setup. It needs no ADB connection and touches no other app's settings.",
-                "Bazı TV'ler erişilebilirlik servislerini kendiliğinden kapatır. Otomatik onarım açıkken REYLauncher, kurulumda bir kez verilen güvenli ayarlar izniyle yalnızca kendi Düğme Eşleyici servisini yeniden açar. ADB bağlantısı gerekmez ve başka uygulamaların ayarlarına dokunmaz."));
+        infoNote(tr("Some TVs switch accessibility services off by themselves at startup. With auto-repair on, REYLauncher switches its own Button Mapper service back on during the first 10 minutes after the box starts, using the secure-settings permission granted once during setup. If you switch it off yourself later, that is respected. No ADB connection is needed.",
+                "Bazı TV'ler erişilebilirlik servislerini açılışta kendiliğinden kapatır. Otomatik onarım açıkken REYLauncher, kutu açıldıktan sonraki ilk 10 dakika içinde, kurulumda bir kez verilen güvenli ayarlar izniyle yalnızca kendi Düğme Eşleyici servisini yeniden açar. Servisi sonradan kendiniz kapatırsanız buna dokunmaz. ADB bağlantısı gerekmez."));
 
         section(tr("CLEANYOURTV (BETA)", "CLEANYOURTV (BETA)"));
         twoLineRow(tr("Choose TV model", "TV modelini seçin"),
@@ -1534,10 +1536,9 @@ public class SettingsActivity extends Activity {
 
     private String permissionsSummaryCount() {
         int granted = 0;
-        int total = 4;
+        int total = 3;
         if (Perms.isDefaultHome(this)) granted++;
         if (ButtonMapper.isServiceEnabled(this)) granted++;
-        if (Perms.hasAdmin(this)) granted++;
         if (Perms.hasListener(this)) granted++;
         return granted + " / " + total + " " + tr("active", "etkin");
     }
@@ -1545,8 +1546,8 @@ public class SettingsActivity extends Activity {
     private void pairOrRepairAdb() {
         AlertDialog progress = dialog(tr("Pair / Repair ADB", "ADB Eşleştir / Onar"))
                 .setMessage(tr(
-                        "Connecting to local ADB on port 5555 and granting all permissions…\n\nIf an \u201cAllow USB debugging?\u201d prompt appears, check \u201cAlways allow\u201d and press Allow.",
-                        "Port 5555 üzerinden yerel ADB'ye bağlanılıyor ve tüm izinler veriliyor…\n\nEkranda \u201cUSB hata ayıklamaya izin verilsin mi?\u201d penceresi çıkarsa \u201cHer zaman izin ver\u201di işaretleyip İzin Ver'e basın."))
+                        "Connecting to local ADB on port 5555 and granting all permissions…\n\nWhen \u201cAllow USB debugging?\u201d appears, press Allow (\u201cAlways allow\u201d is not needed). ADB is switched off again 3 minutes after you leave Settings.",
+                        "Port 5555 üzerinden yerel ADB'ye bağlanılıyor ve tüm izinler veriliyor…\n\nEkranda \u201cUSB hata ayıklamaya izin verilsin mi?\u201d çıkınca İzin Ver'e basın (\u201cHer zaman izin ver\u201d gerekmez). Ayarlar'dan çıktıktan 3 dakika sonra ADB yeniden kapatılır."))
                 .setCancelable(false)
                 .create();
         progress.show();
@@ -1583,8 +1584,8 @@ public class SettingsActivity extends Activity {
     private void confirmRevokeAllPermissions() {
         dialog(tr("Remove / Revoke All Permissions", "Tüm İzinleri Kaldır / Geri Al"))
                 .setMessage(tr(
-                        "This will disable Keep Alive and remove Device Admin, Accessibility Service, Notification Access, Default Home Role, and runtime permissions (both locally and via ADB).\n\nUse this if your TV does not have a Device Admin settings screen and you want to uninstall REYLauncher.",
-                        "Bu işlem Keep Alive'ı kapatır ve Cihaz Yöneticisi, Erişilebilirlik Servisi, Bildirim Erişimi, Varsayılan Ana Ekran ve tüm çalışma zamanı izinlerini (hem yerel olarak hem ADB üzerinden) kaldırır.\n\nTV'nizde Cihaz Yöneticisi ayar ekranı yoksa ve uygulamayı kaldırmak istiyorsanız bu seçeneği kullanın."))
+                        "This turns auto-repair off and removes the Accessibility Service, Notification Access, the Default Home role and the other permissions (locally, and via ADB if it is on), then switches ADB off.\n\nREYLauncher is not a device admin, so it can also be uninstalled directly.",
+                        "Bu işlem otomatik onarımı kapatır; Erişilebilirlik Servisi, Bildirim Erişimi, Varsayılan Ana Ekran ve diğer izinleri (yerel olarak, ADB açıksa onunla da) kaldırır ve ADB'yi kapatır.\n\nREYLauncher cihaz yöneticisi olmadığı için doğrudan da kaldırılabilir."))
                 .setPositiveButton(tr("Revoke All Permissions", "Tüm İzinleri Kaldır"), (d, w) -> {
                     AlertDialog progress = dialog(tr("Revoking Permissions…", "İzinler Kaldırılıyor…"))
                             .setMessage(tr("Removing Device Admin and revoking all permissions…",
@@ -2523,7 +2524,7 @@ public class SettingsActivity extends Activity {
         }
 
         section(tr("ONE-TAP ACTIONS", "TEK DOKUNUŞ İŞLEMLERİ"));
-        twoLineRow(tr("Disable All Stock Launchers & Set REYLauncher as Home", "Tüm Stok Başlatıcıları Devre Dışı Bırak ve tvOS'u Ana Ekran Yap"),
+        twoLineRow(tr("Disable All Stock Launchers & Set REYLauncher as Home", "Tüm Stok Başlatıcıları Devre Dışı Bırak ve REYLauncher'ı Ana Ekran Yap"),
                 () -> tr("Disable all ›", "Tümünü kapat ›"),
                 () -> {
                     List<String> toDisable = new ArrayList<>();
@@ -3208,8 +3209,11 @@ public class SettingsActivity extends Activity {
     /** Fetches Bing's photo of the day and uses it as the Classic background. */
     private void pickCustomClassicWallpaper() {
         showStatusMsg(tr("Getting Bing's photo of the day…", "Bing'in günün fotoğrafı alınıyor…"));
-        Profiles.homePrefs(this).edit().putString("wallpaper", MainActivity.CUSTOM_WALL_KEY).apply();
+        if (CustomMedia.hasCustomClassicWallpaper(this)) {
+            Profiles.homePrefs(this).edit().putString("wallpaper", MainActivity.CUSTOM_WALL_KEY).apply();
+        }
         BingWallpaper.refreshNow(this, ok -> runOnUiThread(() -> {
+            if (ok) Profiles.homePrefs(this).edit().putString("wallpaper", MainActivity.CUSTOM_WALL_KEY).apply();
             if (isFinishing()) return;
             rebuildMainRows();
             if (ok) {
@@ -3796,8 +3800,15 @@ public class SettingsActivity extends Activity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        LocalAdb.setHoldOpen(this, false);  // ADB switches off 3 minutes after leaving Settings
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+        LocalAdb.setHoldOpen(this, true);  // e.g. a CleanYourTV checklist: don't close ADB under it
         if (BUTTON_MAPPER.equals(currentSection)) {
             rebuildMainRows();
         } else {

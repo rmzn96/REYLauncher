@@ -13,8 +13,9 @@ import android.content.Intent;
  */
 public class SleepReceiver extends BroadcastReceiver {
 
+    /** Sleeping needs REYLauncher's accessibility service (there is no device admin any more). */
     static boolean canSleep(Context c) {
-        return true;
+        return PowerService.instance != null;
     }
 
     /** Real sleep through the accessibility service; a black screen-off overlay if the service is off. */

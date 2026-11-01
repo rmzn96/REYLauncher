@@ -529,12 +529,10 @@ final class SearchPanel {
         List<Object[]> l = new ArrayList<>();
         l.add(new Object[]{tr("Control Center", "Denetim Merkezi"), "controls power sleep denetim g\u00fc\u00e7 uyku", "controls", (Runnable) () -> { close(); a.showControlCenter(); }});
         l.add(new Object[]{tr("Weather Forecast", "Hava Durumu Tahmini"), "weather temperature rain hava s\u0131cakl\u0131k ya\u011fmur", "refresh", (Runnable) () -> { close(); a.showWeather(); }});
-        l.add(new Object[]{tr("Switch Profile", "Profil De\u011fi\u015ftir"), "profile user who profil kullan\u0131c\u0131 ki\u015fi", "controls", (Runnable) () -> { close(); a.showProfilePicker(false); }});
         l.add(new Object[]{tr("Home Settings", "REYLauncher Ayarlar\u0131"), "settings launcher preferences ayarlar g\u00f6r\u00fcn\u00fcm sahneler dil", "gear", (Runnable) () -> {
             a.returningFromSettings = true;
             a.startActivity(new Intent(a, SettingsActivity.class));
         }});
-        l.add(new Object[]{tr("Refresh Carousel", "Vitrin Yenile"), "refresh reload news recommendations yenile haberler \u00f6neriler", "refresh", (Runnable) () -> { close(); a.refreshAll(); }});
         l.add(new Object[]{"Wi-Fi", "wifi network internet a\u011f", "wifi", settings(Settings.ACTION_WIFI_SETTINGS)});
         l.add(new Object[]{"Bluetooth", "bluetooth remote controller headphones speaker pair kumanda kulakl\u0131k hoparl\u00f6r", "gamepad", settings(Settings.ACTION_BLUETOOTH_SETTINGS)});
         l.add(new Object[]{tr("Sound", "Ses"), "sound audio volume speaker ses hoparl\u00f6r", "audio", settings("android.settings.SOUND_SETTINGS")});

@@ -83,6 +83,15 @@ ve tuş girişlerini ham olarak okuyordu (orijinal projedeki #1). REYLauncher'da
   "İşlem bitince ADB'yi otomatik kapat".
 - Ham tuş okuma (`getevent`) kaldırıldı; ses tuşu düzeltmesi erişilebilirlik servisinin zaten aldığı
   tuş olaylarıyla çalışır.
+- ADB bir işlem sürerken ya da Ayarlar ekranı açıkken kapatılmaz; Ayarlar'dan çıktıktan 3 dakika sonra
+  ve TV uykuya geçince kapatılır. Kapatmak için yeni bir ADB bağlantısı açılmaz (beklenmedik
+  "izin verilsin mi?" sorusu çıkmaz).
+- Erişilebilirlik otomatik onarımı sadece kutu açıldıktan sonraki ilk 10 dakikada çalışır; servisi
+  sonradan kendin kapatırsan dokunmaz.
+- **Bilinmeyen:** Bazı Google TV 14 kutularında ADB kapatılınca 5555 portu, Geliştirici seçeneklerinden
+  USB hata ayıklamayı yeniden açmakla geri gelmeyebilir (bilgisayardan `adb tcpip 5555` gerekebilir).
+  Mi Box S 2. nesilde sadece USB hata ayıklamayı açmak yetiyordu; 3. nesilde henüz denenmedi. Sorun
+  olursa Ayarlar → Gelişmiş → "İşlem bitince ADB'yi otomatik kapat"ı kapatabilirsin.
 
 ### Kaldırma
 

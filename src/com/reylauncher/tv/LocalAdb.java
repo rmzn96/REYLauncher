@@ -128,13 +128,20 @@ final class LocalAdb {
         }
     }
 
+    private static final Runnable REPAIR_RUNNABLE = () -> {
+        Context ctx = keepAliveAppCtx;
+        if (ctx != null) checkAndRepairPermissionsIfNeeded(ctx, false);
+    };
+
     static void scheduleKeepAliveRepair(Context c, long delayMs) {
         if (c == null) return;
         final Context appCtx = c.getApplicationContext();
         keepAliveAppCtx = appCtx;
+        closeIfIdle(appCtx);
         if (!isKeepAliveEnabled(appCtx)) return;
-        KEEP_ALIVE_HANDLER.removeCallbacksAndMessages(null);
-        KEEP_ALIVE_HANDLER.postDelayed(() -> checkAndRepairPermissionsIfNeeded(appCtx, false), Math.max(8_000L, delayMs));
+        // Only this runnable is replaced: the auto-close timer and the watchdog tick stay scheduled.
+        KEEP_ALIVE_HANDLER.removeCallbacks(REPAIR_RUNNABLE);
+        KEEP_ALIVE_HANDLER.postDelayed(REPAIR_RUNNABLE, Math.max(8_000L, delayMs));
     }
 
     /**
@@ -196,8 +203,11 @@ final class LocalAdb {
     static void checkAndRepairPermissionsIfNeeded(Context c, boolean forceNow) {
         if (c == null) return;
         final Context appCtx = c.getApplicationContext();
-        if (!forceNow && !isKeepAliveEnabled(appCtx)) return;
         closeIfIdle(appCtx);
+        if (!forceNow && !isKeepAliveEnabled(appCtx)) return;
+        // Automatic repairs only in the first 10 minutes after the box starts (when TV firmware tends to
+        // switch accessibility services off). Switching the service off yourself later is respected.
+        if (!forceNow && android.os.SystemClock.elapsedRealtime() > 10 * 60_000L) return;
         if (repairInProgress) return;
         long now = android.os.SystemClock.uptimeMillis();
         if (lastRepairAttemptMs > 0L && (now - lastRepairAttemptMs) < REPAIR_COOLDOWN_MS) {
@@ -249,7 +259,10 @@ final class LocalAdb {
     private static final String K_AUTO_CLOSE = "auto_close_adb";
     private static final String K_WE_USED_ADB = "we_used_adb";
     private static final long AUTO_CLOSE_AFTER_MS = 3 * 60_000L;
-    private static volatile long lastAdbUseMs = 0L;
+    private static volatile long lastAdbUseMs = 0L;  // elapsedRealtime of the last ADB activity
+    private static final java.util.concurrent.atomic.AtomicInteger inFlight = new java.util.concurrent.atomic.AtomicInteger();
+    private static final java.util.concurrent.atomic.AtomicBoolean closing = new java.util.concurrent.atomic.AtomicBoolean();
+    private static volatile boolean holdOpen;  // Settings is on screen (e.g. a CleanYourTV checklist)
     private static Context autoCloseCtx;
     private static final Runnable AUTO_CLOSE = () -> {
         Context ctx = autoCloseCtx;
@@ -265,23 +278,44 @@ final class LocalAdb {
         if (on) closeIfIdle(c);
     }
 
-    /** Called on every ADB use: remembers it, and schedules switching ADB off a few minutes later. */
+    /**
+     * Called after a successful ADB login and after every command: remembers that REYLauncher opened
+     * ADB, and (re)schedules switching it off a few minutes after the last activity.
+     */
     private static void markAdbUsed(Context c) {
         Context appCtx = c.getApplicationContext();
         autoCloseCtx = appCtx;
-        lastAdbUseMs = android.os.SystemClock.uptimeMillis();
+        lastAdbUseMs = android.os.SystemClock.elapsedRealtime();
         appCtx.getSharedPreferences("adb_state", Context.MODE_PRIVATE).edit().putBoolean(K_WE_USED_ADB, true).apply();
         KEEP_ALIVE_HANDLER.removeCallbacks(AUTO_CLOSE);
         KEEP_ALIVE_HANDLER.postDelayed(AUTO_CLOSE, AUTO_CLOSE_AFTER_MS + 1_000L);
+    }
+
+    private static boolean weUsedAdb(Context c) {
+        return c.getSharedPreferences("adb_state", Context.MODE_PRIVATE).getBoolean(K_WE_USED_ADB, false);
+    }
+
+    /** Settings keeps ADB from closing while it is on screen; leaving it restarts the 3-minute timer. */
+    static void setHoldOpen(Context c, boolean hold) {
+        holdOpen = hold;
+        if (!hold && c != null && weUsedAdb(c.getApplicationContext())) markAdbUsed(c);
+    }
+
+    /** The screen went off: switch ADB off now if REYLauncher opened it (and nothing is running). */
+    static void closeOnScreenOff(Context c) {
+        if (c == null) return;
+        Context appCtx = c.getApplicationContext();
+        if (!isAutoCloseEnabled(appCtx) || !weUsedAdb(appCtx) || inFlight.get() > 0) return;
+        closeAdbNow(appCtx, null);
     }
 
     /** Switches ADB off when REYLauncher used it and nothing has used it for a few minutes. */
     static void closeIfIdle(Context c) {
         if (c == null) return;
         Context appCtx = c.getApplicationContext();
-        if (!isAutoCloseEnabled(appCtx)) return;
-        if (!appCtx.getSharedPreferences("adb_state", Context.MODE_PRIVATE).getBoolean(K_WE_USED_ADB, false)) return;
-        long idle = android.os.SystemClock.uptimeMillis() - lastAdbUseMs;
+        if (!isAutoCloseEnabled(appCtx) || !weUsedAdb(appCtx)) return;
+        if (inFlight.get() > 0 || holdOpen) return;  // an ADB task is running, or Settings is open
+        long idle = android.os.SystemClock.elapsedRealtime() - lastAdbUseMs;
         if (lastAdbUseMs != 0L && idle < AUTO_CLOSE_AFTER_MS) return;
         closeAdbNow(appCtx, null);
     }
@@ -293,33 +327,40 @@ final class LocalAdb {
      */
     static void closeAdbNow(Context c, Callback cb) {
         final Context appCtx = c.getApplicationContext();
+        if (!closing.compareAndSet(false, true)) {
+            if (cb != null) cb.onResult(false, "BUSY");
+            return;
+        }
         new Thread(() -> {
-            boolean viaSettings = false;
-            if (canWriteSecureSettings(appCtx)) {
-                try {
-                    Settings.Global.putInt(appCtx.getContentResolver(), "adb_wifi_enabled", 0);
-                } catch (Throwable ignored) { }
-                try {
-                    viaSettings = Settings.Global.putInt(appCtx.getContentResolver(), Settings.Global.ADB_ENABLED, 0);
-                } catch (Throwable ignored) { }
-            }
-            if (!viaSettings && isPortOpen("127.0.0.1", 5555, 400)) {
-                try {
-                    // adbd stops while running this, so the connection dropping is expected.
-                    runShellCommandOutput(appCtx, "127.0.0.1", 5555,
-                            "settings put global adb_wifi_enabled 0; settings put global adb_enabled 0");
-                } catch (Throwable ignored) { }
-            }
-            forgetKey(appCtx);
-            appCtx.getSharedPreferences("adb_state", Context.MODE_PRIVATE).edit().putBoolean(K_WE_USED_ADB, false).apply();
-            lastAdbUseMs = 0L;
-            KEEP_ALIVE_HANDLER.removeCallbacks(AUTO_CLOSE);
             try {
-                Thread.sleep(1500L);
-            } catch (InterruptedException ignored) { }
-            boolean stillOpen = isPortOpen("127.0.0.1", 5555, 500);
-            portReachable = stillOpen;
-            if (cb != null) cb.onResult(!stillOpen, stillOpen ? "PORT_STILL_OPEN" : null);
+                boolean viaSettings = false;
+                if (canWriteSecureSettings(appCtx)) {
+                    try {
+                        Settings.Global.putInt(appCtx.getContentResolver(), "adb_wifi_enabled", 0);
+                    } catch (Throwable ignored) { }
+                    try {
+                        viaSettings = Settings.Global.putInt(appCtx.getContentResolver(), Settings.Global.ADB_ENABLED, 0);
+                    } catch (Throwable ignored) { }
+                }
+                if (!viaSettings) {
+                    // Never open a new ADB connection just to close ADB (that would pop up another
+                    // "Allow debugging?"). Without the permission, the user turns it off in Developer options.
+                    if (cb != null) cb.onResult(false, "NO_SECURE_SETTINGS");
+                    return;
+                }
+                KEEP_ALIVE_HANDLER.removeCallbacks(AUTO_CLOSE);
+                try {
+                    Thread.sleep(1500L);
+                } catch (InterruptedException ignored) { }
+                boolean stillOpen = isPortOpen("127.0.0.1", 5555, 500);
+                portReachable = stillOpen;
+                forgetKey(appCtx);
+                appCtx.getSharedPreferences("adb_state", Context.MODE_PRIVATE).edit().putBoolean(K_WE_USED_ADB, false).apply();
+                lastAdbUseMs = 0L;
+                if (cb != null) cb.onResult(!stillOpen, stillOpen ? "PORT_STILL_OPEN" : null);
+            } finally {
+                closing.set(false);
+            }
         }, "local-adb-close").start();
     }
 
@@ -548,7 +589,6 @@ final class LocalAdb {
             cmds.add("cmd package clear-package-preferred-activities " + pkg + " 2>/dev/null");
             cmds.add("appops set " + pkg + " MANAGE_EXTERNAL_STORAGE default 2>/dev/null");
             cmds.add("appops set " + pkg + " GET_USAGE_STATS default 2>/dev/null");
-            cmds.add("pm revoke " + pkg + " android.permission.WRITE_SECURE_SETTINGS 2>/dev/null");
 
             String[] hosts = {"127.0.0.1"};
             boolean adbRan = false;
@@ -561,6 +601,7 @@ final class LocalAdb {
                     break;
                 } catch (Exception ignored) { }
             }
+            closeAdbNow(appCtx, null);
             if (cb != null) cb.onResult(true, adbRan ? "ADB_AND_LOCAL" : "LOCAL_ONLY");
         }, "local-adb-revoke").start();
     }
@@ -664,7 +705,17 @@ final class LocalAdb {
     private static List<String> runShellCommandsOnHost(
             Context c, String host, int port, List<String> commands, BatchProgressListener progress) throws Exception {
         if (!"127.0.0.1".equals(host)) throw new Exception("LOOPBACK_ONLY");
-        markAdbUsed(c);
+        inFlight.incrementAndGet();
+        try {
+            return runShellCommandsLoggedIn(c, host, port, commands, progress);
+        } finally {
+            inFlight.decrementAndGet();
+            if (weUsedAdb(c.getApplicationContext())) markAdbUsed(c);  // the 3-minute timer starts when work ends
+        }
+    }
+
+    private static List<String> runShellCommandsLoggedIn(
+            Context c, String host, int port, List<String> commands, BatchProgressListener progress) throws Exception {
         KeyPair kp = getOrCreateKeyPair(c);
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(host, port), 2500);
@@ -699,12 +750,22 @@ final class LocalAdb {
                 }
             }
 
+            // Logged in: from now on REYLauncher is responsible for switching ADB off again. Make sure it
+            // can do that without ADB (and so without another "Allow debugging?" prompt).
+            markAdbUsed(c);
+            List<String> all = new java.util.ArrayList<>(commands);
+            int offset = 0;
+            if (!canWriteSecureSettings(c)) {
+                all.add(0, "pm grant " + c.getPackageName() + " android.permission.WRITE_SECURE_SETTINGS 2>/dev/null");
+                offset = 1;
+            }
             socket.setSoTimeout(15000);
             List<String> outputs = new java.util.ArrayList<>(commands.size());
             int total = commands.size();
-            for (int i = 0; i < total; i++) {
-                String shellCmd = commands.get(i);
-                int localId = i + 1;
+            for (int j = 0; j < all.size(); j++) {
+                int i = j - offset;
+                String shellCmd = all.get(j);
+                int localId = j + 1;
                 byte[] openData = ("shell:" + shellCmd + "\0").getBytes(StandardCharsets.UTF_8);
                 sendPacket(out, A_OPEN, localId, 0, openData);
 
@@ -721,6 +782,8 @@ final class LocalAdb {
                         break;
                     }
                 }
+                markAdbUsed(c);
+                if (i < 0) continue;  // the permission grant above, not one of the caller's commands
                 String outStr = sb.toString();
                 outputs.add(outStr);
                 if (progress != null) {
