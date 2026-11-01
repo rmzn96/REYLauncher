@@ -5,6 +5,11 @@
 # Apply:   TV_HOST=<box ip> tools/disable.sh examples/xiaomi-mitv-afmu0/debloat.txt
 # Undo:    TV_HOST=<box ip> tools/restore.sh examples/xiaomi-mitv-afmu0/debloat.txt com.google.android.apps.tv.launcherx
 # Everything is DISABLED, not uninstalled.
+#
+# REYLauncher: only telemetry, ad rows and auto-installs are preselected. Everything a person might use
+# (Disney+, HBO Max, Xiaomi TV+, screen mirroring, USB media players, gallery) and the setup wizard are
+# optional (unticked). REYLauncher does not disable the stock launcher, so setupwraith gains nothing and
+# disabling it can delete the Wi-Fi network saved during first setup (see notes below).
 # Tested for one evening so far (Home, grid, D-pad, dock apps) and across one reboot: the disabled list and the
 # default home survive it. Not lived with for days yet.
 #
@@ -34,7 +39,7 @@ com.android.tv.feedbackconsent
 # PatchWall, content rows, promos, auto-installs
 com.mitv.tvhome.atv
 com.mitv.tvhome.michannel
-com.mitv.tvhome.mitvplus
+# com.mitv.tvhome.mitvplus             # Xiaomi TV+ free live channels (app)
 com.mitv.tvhome.oemtab
 com.xm.webcontent
 android.autoinstalls.config.soc.amlogic
@@ -49,21 +54,21 @@ android.autoinstalls.config.soc.amlogic
 # Left commented so check.py does not report drift and re-applying the list does not break it again.
 # com.google.android.katniss
 # com.google.android.tv.remote.service
-com.xiaomi.mitv.smartshare
-com.xiaomi.wfdsinkhelperservice
-com.xiaomi.mi_connect_service
+# com.xiaomi.mitv.smartshare           # Miracast: screen mirroring from a phone
+# com.xiaomi.wfdsinkhelperservice      # Miracast helper
+# com.xiaomi.mi_connect_service        # Xiaomi share / continuity
 
-# Preloaded apps
-com.disney.disneyplus
-com.wbd.hbomax
-com.google.android.youtube.tvmusic
-com.google.android.play.games
-com.google.android.marvin.talkback
-com.xiaomi.mimusic2
-com.xiaomi.mitv.mediaexplorer
-com.mitv.videoplayer
-com.android.printspooler
-com.mitv.gallery
+# Preloaded apps (optional: tick only the ones you don't use)
+# com.disney.disneyplus                # Disney+
+# com.wbd.hbomax                       # HBO Max (preloaded)
+# com.google.android.youtube.tvmusic   # YouTube Music
+# com.google.android.play.games        # Play Games
+# com.google.android.marvin.talkback   # Accessibility Suite / TalkBack
+# com.xiaomi.mimusic2                  # USB music player
+# com.xiaomi.mitv.mediaexplorer        # USB media player
+# com.mitv.videoplayer                 # Mi TV video player (USB)
+# com.android.printspooler             # Print spooler
+# com.mitv.gallery                     # Gallery (USB photos)
 
 # Personal choice: preloaded streaming apps, kept enabled here. Uncomment the ones you don't use
 # com.netflix.ninja                    # Netflix
@@ -73,8 +78,9 @@ com.mitv.gallery
 # Optional, uncomment if unused
 # com.google.android.apps.tv.dreamx    # Google ambient screensaver (switch to the Clock dream first)
 
-# Setup wizard, takes Home after the stock launcher is disabled
-com.google.android.tungsten.setupwraith
+# Setup wizard, takes Home after the stock launcher is disabled. Only needed if the stock launcher is disabled;
+# disabling it can drop Wi-Fi, and it is needed to re-pair the remote.
+# com.google.android.tungsten.setupwraith  # Setup wizard (only with the stock launcher disabled)
 
 # Stock Google TV launcher, replaced by launcher/ (build-and-install.sh disables it; listed so restore brings it back)
 # com.google.android.apps.tv.launcherx   # launcher/build-and-install.sh disables the stock launcher itself, after Home has moved

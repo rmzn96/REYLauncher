@@ -36,8 +36,11 @@ dosyalarında duruyor. Paket adı `com.reylauncher.tv`, yani orijinal uygulamayl
   S Sport Plus.
 - **Kumanda tuş isimleri:** Tuş atayıcıda Mi Box kumandasının Netflix / YouTube / Prime Video /
   Xiaomi TV+ / Uygulamalar tuşları adıyla görünür; herhangi bir uygulamaya atanabilir.
-- **CleanYourTV: Xiaomi TV Box S 3rd Gen profili** (test edilmemiş, temkinli): sadece telemetri ve
-  reklam paketleri seçili gelir; Wi-Fi'yi koparabilen kurulum sihirbazı (setupwraith) listede yok.
+- **CleanYourTV, Xiaomi TV Box S 3. nesil (MiTV-AFMU0) profili:** Orijinal projedeki, bu kutuda denenmiş
+  profil kullanılır; uygulama modeli kendisi tanır. REYLauncher'da varsayılan olarak sadece telemetri,
+  reklam satırları ve otomatik yüklemeler seçili gelir. Disney+, HBO Max, Xiaomi TV+, ekran yansıtma
+  (Miracast), USB medya oynatıcıları, galeri ve kurulum sihirbazı (setupwraith) isteğe bağlıdır,
+  işaretlenmeden kapatılmaz.
 - **Güvenli ADB** (aşağıda).
 
 ## Güvenlik ve gizlilik
