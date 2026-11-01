@@ -770,14 +770,18 @@ public final class CustomMedia {
         if (c == null) return null;
         int s = Math.max(1, Math.min(5, slot));
         long ts = getCustomSceneTimestamp(c, s);
-        if (cachedSceneWalls[s] != null && !cachedSceneWalls[s].isRecycled() && cachedSceneWallTs[s] == ts) {
-            return cachedSceneWalls[s];
+        Bitmap cached = cachedSceneWalls[s];
+        boolean fresh = cached != null && !cached.isRecycled() && cachedSceneWallTs[s] == ts;
+        // Reuse the decoded image if it is (nearly) as large as asked: a thumbnail can use the
+        // full-screen copy, but the full screen must not get a thumbnail-sized one.
+        if (fresh && cached.getWidth() * 4 >= reqW * 3) {
+            return cached;
         }
         File f = sceneWallFile(c, s);
         if (!f.exists() || f.length() == 0) return null;
         try {
             Bitmap b = decodeBitmapFromFile(f, Math.max(1280, reqW), Math.max(720, reqH));
-            if (b != null) {
+            if (b != null && (!fresh || b.getWidth() >= cached.getWidth())) {
                 cachedSceneWalls[s] = b;
                 cachedSceneWallTs[s] = ts;
             }
@@ -785,6 +789,52 @@ public final class CustomMedia {
         } catch (Throwable t) {
             return null;
         }
+    }
+
+    /**
+     * Stores a downloaded JPEG unchanged (full resolution, e.g. 3840x2160) as both the custom scene
+     * (slot 1) and the Classic background. Only the image header is read here, so no 33 MB bitmap is
+     * built; the image is decoded later at the size the screen is actually drawn at.
+     */
+    public static boolean setSceneAndClassicWallpaperJpeg(Context c, byte[] jpeg) {
+        if (c == null || jpeg == null || jpeg.length < 4) return false;
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeByteArray(jpeg, 0, jpeg.length, bounds);
+        if (bounds.outWidth < 640 || bounds.outHeight < 360 || !"image/jpeg".equals(bounds.outMimeType)) return false;
+        if (!writeAtomically(sceneWallFile(c, 1), jpeg) || !writeAtomically(classicWallFile(c), jpeg)) return false;
+        long ts = System.currentTimeMillis();
+        prefs(c).edit().putLong(sceneWallTsKey(1), ts).putLong(KEY_CLASSIC_WALL_TS, ts).apply();
+        cachedSceneWalls[1] = null;
+        cachedSceneWallTs[1] = -1L;
+        cachedClassicWall = null;
+        cachedClassicWallTs = -1L;
+        return true;
+    }
+
+    private static boolean writeAtomically(File f, byte[] data) {
+        File tmp = new File(f.getParentFile(), f.getName() + ".part");
+        try (FileOutputStream fos = new FileOutputStream(tmp)) {
+            fos.write(data);
+            fos.getFD().sync();
+        } catch (Throwable t) {
+            tmp.delete();
+            return false;
+        }
+        return tmp.renameTo(f);
+    }
+
+    /** The size the screen is drawn at (landscape), e.g. 1920x1080 or 3840x2160. */
+    public static int[] screenSize(Context c) {
+        try {
+            android.view.WindowManager wm = c.getSystemService(android.view.WindowManager.class);
+            android.util.DisplayMetrics dm = new android.util.DisplayMetrics();
+            wm.getDefaultDisplay().getRealMetrics(dm);
+            int w = Math.max(dm.widthPixels, dm.heightPixels), h = Math.min(dm.widthPixels, dm.heightPixels);
+            if (w > 0 && h > 0) return new int[]{w, h};
+        } catch (Throwable ignored) {
+        }
+        return new int[]{1920, 1080};
     }
 
     public static boolean hasCustomClassicWallpaper(Context c) {
@@ -811,16 +861,23 @@ public final class CustomMedia {
     }
 
     public static Bitmap getCustomClassicWallpaper(Context c) {
+        return getCustomClassicWallpaper(c, 1280, 720);
+    }
+
+    /** The Classic background decoded no smaller than reqW x reqH (or the stored size, if smaller). */
+    public static Bitmap getCustomClassicWallpaper(Context c, int reqW, int reqH) {
         if (c == null) return null;
         long ts = prefs(c).getLong(KEY_CLASSIC_WALL_TS, 0L);
-        if (cachedClassicWall != null && !cachedClassicWall.isRecycled() && cachedClassicWallTs == ts) {
-            return cachedClassicWall;
+        Bitmap cached = cachedClassicWall;
+        boolean fresh = cached != null && !cached.isRecycled() && cachedClassicWallTs == ts;
+        if (fresh && cached.getWidth() * 4 >= reqW * 3) {
+            return cached;
         }
         File f = classicWallFile(c);
         if (!f.exists() || f.length() == 0) return null;
         try {
-            Bitmap b = decodeBitmapFromFile(f, 1280, 720);
-            if (b != null) {
+            Bitmap b = decodeBitmapFromFile(f, reqW, reqH);
+            if (b != null && (!fresh || b.getWidth() >= cached.getWidth())) {
                 cachedClassicWall = b;
                 cachedClassicWallTs = ts;
             }

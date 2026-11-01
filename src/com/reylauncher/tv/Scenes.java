@@ -707,7 +707,8 @@ public final class Scenes {
                 ls = new LoadedScene(CUSTOM_SPECS[cSlot - 1]);
                 ls.customTs = ts;
                 ls.ownsBg = false;
-                ls.bg = CustomMedia.getCustomSceneWallpaper(c, cSlot, 1920, 1080);
+                int[] scr = CustomMedia.screenSize(c);  // the stored photo is 4K; decode it at the drawn size
+                ls.bg = CustomMedia.getCustomSceneWallpaper(c, cSlot, scr[0], scr[1]);
                 if (ls.bg == null) {
                     ls.ownsBg = true;
                     ls.bg = loadAssetBitmap(c, ALL[0].bgAsset, 1920, 1080);

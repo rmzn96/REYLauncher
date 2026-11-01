@@ -2,8 +2,6 @@ package com.reylauncher.tv;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -22,7 +20,9 @@ import java.util.Locale;
  *
  * Network use (only while one of the two is switched on, at most once a day):
  *   1. GET https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=tr-TR
- *   2. GET https://www.bing.com/th?id=... (the image path from step 1, always on www.bing.com)
+ *   2. GET https://www.bing.com/th?id=..._UHD.jpg (the 4K 3840x2160 photo, about 3.5 MB), or the
+ *      1920x1080 one if the 4K image is not available; always on www.bing.com.
+ * The JPEG is stored as downloaded (not re-encoded) and decoded at the size the screen is drawn at.
  * No account, key, cookie or information about this TV is sent; Bing sees only the requests.
  */
 final class BingWallpaper {
@@ -82,17 +82,23 @@ final class BingWallpaper {
                 JSONObject json = new JSONObject(new String(get(API, 256 * 1024), StandardCharsets.UTF_8));
                 JSONArray images = json.getJSONArray("images");
                 JSONObject img = images.getJSONObject(0);
+                String base = img.optString("urlbase", "");
                 String path = img.optString("url", "");
-                // Only ever download from www.bing.com itself.
-                if (!path.startsWith("/") || path.startsWith("//")) throw new Exception("bad image path");
-                byte[] data = get(HOST + path, MAX_BYTES);
-                BitmapFactory.Options o = new BitmapFactory.Options();
-                o.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length, o);
-                if (bmp == null) throw new Exception("not an image");
-                boolean scene = CustomMedia.setCustomSceneWallpaper(appCtx, 1, bmp);
-                boolean classic = CustomMedia.setCustomClassicWallpaper(appCtx, bmp);
-                ok = scene && classic;
+                byte[] data = null;
+                // 4K first; only ever download from www.bing.com itself.
+                if (isSafePath(base)) {
+                    try {
+                        data = get(HOST + base + "_UHD.jpg", MAX_BYTES);
+                    } catch (Exception e) {
+                        data = null;
+                    }
+                }
+                if (data == null || !CustomMedia.setSceneAndClassicWallpaperJpeg(appCtx, data)) {
+                    if (!isSafePath(path)) throw new Exception("bad image path");
+                    data = get(HOST + path, MAX_BYTES);
+                    if (!CustomMedia.setSceneAndClassicWallpaperJpeg(appCtx, data)) throw new Exception("not a JPEG");
+                }
+                ok = true;
                 if (ok) {
                     prefs(appCtx).edit()
                             .putString(K_DAY, today())
@@ -106,6 +112,11 @@ final class BingWallpaper {
             }
             if (done != null) done.onDone(ok);
         }, "bing-wallpaper").start();
+    }
+
+    /** A path on www.bing.com ("/th?id=..."), never another host ("//host/...", "https://..."). */
+    private static boolean isSafePath(String p) {
+        return p != null && p.startsWith("/") && !p.startsWith("//") && !p.contains("\\") && !p.contains("@");
     }
 
     private static byte[] get(String url, int maxBytes) throws Exception {

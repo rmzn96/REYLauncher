@@ -1099,7 +1099,8 @@ public class MainActivity extends Activity {
 
     Bitmap makeWallpaper(String style) {
         if (CUSTOM_WALL_KEY.equals(style)) {
-            Bitmap custom = CustomMedia.getCustomClassicWallpaper(this);
+            int[] scr = CustomMedia.screenSize(this);  // the stored photo is 4K; decode it at the drawn size
+            Bitmap custom = CustomMedia.getCustomClassicWallpaper(this, scr[0], scr[1]);
             if (custom != null && !custom.isRecycled()) {
                 Bitmap copy = custom.copy(Bitmap.Config.ARGB_8888, true);
                 return bakeShade(copy);

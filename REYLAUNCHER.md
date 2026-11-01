@@ -24,8 +24,10 @@ dosyalarında duruyor. Paket adı `com.reylauncher.tv`, yani orijinal uygulamayl
 
 **Eklenenler / değişenler**
 
-- **Bing günün fotoğrafı:** "Özel 1…5" duvar kağıtları yerine tek bir "Bing günün fotoğrafı" sahnesi
-  (Gece Sahneleri) ve Klasik görünüm arka planı. Hazır sahneler aynen duruyor.
+- **Bing günün fotoğrafı (4K):** "Özel 1…5" duvar kağıtları yerine tek bir "Bing günün fotoğrafı" sahnesi
+  (Gece Sahneleri) ve Klasik görünüm arka planı. Fotoğraf 4K (3840×2160, ~3,5 MB) indirilir ve olduğu
+  gibi saklanır; ekran hangi çözünürlükte çiziliyorsa o boyutta açılır (Ayarlar → Hakkında → Ekran'da
+  görünür). 4K yoksa 1920×1080 indirilir. Hazır sahneler aynen duruyor.
 - **Film/dizi araması Türkiye'ye göre** (JustWatch, Türkçe).
 - **Türk uygulama logoları:** TOD, Exxen, tabii, puhutv, TV+, Tivibu GO, beIN CONNECT, D-Smart GO,
   S Sport Plus.
@@ -45,7 +47,7 @@ dosyalarında duruyor. Paket adı `com.reylauncher.tv`, yani orijinal uygulamayl
 | Şehir arama | `geocoding-api.open-meteo.com` | Ayarlarda şehir ararken | Yazdığın şehir adı |
 | Otomatik konum | `ipapi.co`, `ipwho.is`, `get.geojs.io` | Sadece şehir seçilmemişse, haftada en fazla bir kez | Hiçbir veri gönderilmez (her istekte olduğu gibi IP adresin görünür). Ayarlardan şehir seçersen hiç kullanılmaz. |
 | Film/dizi arama | `apis.justwatch.com`, `images.justwatch.com` | Arama ekranında bir şey yazınca | Yazdığın arama metni |
-| Bing fotoğrafı | `www.bing.com` | Bing sahnesi ya da arka planı açıksa, günde en fazla bir kez | Hiçbir veri gönderilmez |
+| Bing fotoğrafı | `www.bing.com` | Bing sahnesi ya da arka planı açıksa, günde en fazla bir kez (~3,5 MB) | Hiçbir veri gönderilmez |
 
 Analitik, reklam, hata raporu gönderme ya da "eve haber verme" kodu yok. Yüklü uygulama listesi,
 izlediklerin, dosyaların hiçbir yere gönderilmez.
