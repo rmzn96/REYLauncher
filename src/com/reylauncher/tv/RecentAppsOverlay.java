@@ -83,6 +83,18 @@ public final class RecentAppsOverlay {
 
     private static final Map<String, String> LOGO_ASSETS = new HashMap<>();
     static {
+        // Turkish streaming services (REYLauncher)
+        LOGO_ASSETS.put("com.digiturk.tod.mobil", "com.digiturk.tod.mobil.png");
+        LOGO_ASSETS.put("com.beonetv.tod", "com.digiturk.tod.mobil.png");
+        LOGO_ASSETS.put("com.exxen.android", "com.exxen.android.png");
+        LOGO_ASSETS.put("com.trt.tabii.android", "com.trt.tabii.android.png");
+        LOGO_ASSETS.put("com.dogusdigital.puhutv", "com.dogusdigital.puhutv.png");
+        LOGO_ASSETS.put("com.turkcell.ott", "com.turkcell.ott.png");
+        LOGO_ASSETS.put("com.ttnet.tivibucep", "com.ttnet.tivibucep.png");
+        LOGO_ASSETS.put("com.ttnet.tivibutv", "com.ttnet.tivibucep.png");
+        LOGO_ASSETS.put("com.digiturk.iq.mobil", "com.digiturk.iq.mobil.png");
+        LOGO_ASSETS.put("com.dsmart.go.android", "com.dsmart.go.android.png");
+        LOGO_ASSETS.put("com.ssportplus.dice", "com.ssportplus.dice.png");
         LOGO_ASSETS.put("com.netflix.ninja", "com.netflix.ninja.png");
         LOGO_ASSETS.put("com.netflix.mediaclient", "com.netflix.ninja.png");
         LOGO_ASSETS.put("com.google.android.youtube.tv", "com.google.android.youtube.tv.png");

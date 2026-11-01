@@ -338,6 +338,13 @@ public final class ButtonMapper {
             case KeyEvent.KEYCODE_MEDIA_NEXT: return I18n.s(c, "Next Track", "Sonraki Parça");
             case KeyEvent.KEYCODE_MEDIA_PREVIOUS: return I18n.s(c, "Previous Track", "Önceki Parça");
             case KeyEvent.KEYCODE_MEDIA_RECORD: return I18n.s(c, "Record Button", "Kayıt Tuşu");
+            // Xiaomi Mi Box remote shortcut buttons (codes read on the Mi Box S 2nd gen remote; the
+            // 3rd gen may send others, which then show with their own name and number).
+            case KeyEvent.KEYCODE_BUTTON_6: return I18n.s(c, "Netflix button (Mi Box, #193)", "Netflix tuşu (Mi Box, #193)");
+            case KeyEvent.KEYCODE_BUTTON_3: return I18n.s(c, "YouTube button (Mi Box, #190)", "YouTube tuşu (Mi Box, #190)");
+            case KeyEvent.KEYCODE_BUTTON_7: return I18n.s(c, "Prime Video button (Mi Box, #194)", "Prime Video tuşu (Mi Box, #194)");
+            case KeyEvent.KEYCODE_BUTTON_5: return I18n.s(c, "Xiaomi TV+ button (Mi Box, #192)", "Xiaomi TV+ tuşu (Mi Box, #192)");
+            case KeyEvent.KEYCODE_ALL_APPS: return I18n.s(c, "Apps button (#284)", "Uygulamalar tuşu (#284)");
             default: {
                 String raw = KeyEvent.keyCodeToString(keyCode);
                 if (raw != null && raw.startsWith("KEYCODE_")) {

@@ -1402,6 +1402,29 @@ final class SceneHome {
             case "org.smarttube.stable":
             case "com.liskovsoft.smarttubetv.beta":
                 return "com.google.android.youtube.tv.png";
+            // Turkish streaming services (REYLauncher; icons from each app's Google Play page)
+            case "com.digiturk.tod.mobil":
+                return "com.digiturk.tod.mobil.png";
+            case "com.beonetv.tod":
+                return "com.digiturk.tod.mobil.png";
+            case "com.exxen.android":
+                return "com.exxen.android.png";
+            case "com.trt.tabii.android":
+                return "com.trt.tabii.android.png";
+            case "com.dogusdigital.puhutv":
+                return "com.dogusdigital.puhutv.png";
+            case "com.turkcell.ott":
+                return "com.turkcell.ott.png";
+            case "com.ttnet.tivibucep":
+                return "com.ttnet.tivibucep.png";
+            case "com.ttnet.tivibutv":
+                return "com.ttnet.tivibucep.png";
+            case "com.digiturk.iq.mobil":
+                return "com.digiturk.iq.mobil.png";
+            case "com.dsmart.go.android":
+                return "com.dsmart.go.android.png";
+            case "com.ssportplus.dice":
+                return "com.ssportplus.dice.png";
             case "com.netflix.ninja":
                 return "com.netflix.ninja.png";
             case "com.disney.disneyplus":
