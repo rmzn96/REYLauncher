@@ -928,9 +928,9 @@ public class SettingsActivity extends Activity {
                     showStatusMsg(tr("App layout reset to default.", "Uygulama düzeni varsayılana sıfırlandı."));
                 });
         row(tr("Show Continue Watching on Home", "Ana ekranda İzlemeye Devam Et'i göster"),
-                () -> Profiles.homePrefs(this).getBoolean("cw_enabled", false) ? tr("On", "Açık") : tr("Off", "Kapalı"),
+                () -> Profiles.homePrefs(this).getBoolean("cw_enabled", true) ? tr("On", "Açık") : tr("Off", "Kapalı"),
                 () -> {
-                    boolean on = !Profiles.homePrefs(this).getBoolean("cw_enabled", false);
+                    boolean on = !Profiles.homePrefs(this).getBoolean("cw_enabled", true);
                     Profiles.homePrefs(this).edit().putBoolean("cw_enabled", on).apply();
                 });
         row(tr("Clear Continue Watching history", "İzlemeye Devam Et geçmişini temizle"),
