@@ -148,8 +148,6 @@ public class SettingsActivity extends Activity {
             return ABOUT;
         } else if ("apps".equalsIgnoreCase(pg)) {
             return APPS;
-        } else if ("profiles".equalsIgnoreCase(pg) || "people".equalsIgnoreCase(pg)) {
-            return PROFILES;
         } else if ("language".equalsIgnoreCase(pg)) {
             return LANGUAGE;
         }
@@ -687,9 +685,6 @@ public class SettingsActivity extends Activity {
                     case APPS:
                         pageApps();
                         break;
-                    case PROFILES:
-                        pageProfiles();
-                        break;
                     case CONTROL_PANEL:
                         pageControlPanel();
                         break;
@@ -1129,31 +1124,6 @@ public class SettingsActivity extends Activity {
         list.addView(r, lp);
     }
 
-    void pageProfiles() {
-        section(tr("PEOPLE", "KİŞİLER"));
-        List<Profiles.Profile> ps = Profiles.list(this);
-        String curId = Profiles.current(this).id;
-        for (int i = 0; i < ps.size(); i++) {
-            final Profiles.Profile p = ps.get(i);
-            boolean isActive = p.id.equals(curId);
-            choiceRow(
-                    I18n.profileName(this, p.name),
-                    isActive ? tr("Watching now · OK to switch or rename", "Şu an izliyor · Değiştirmek veya yeniden adlandırmak için OK")
-                             : tr("OK to switch or edit", "Geçiş yapmak veya düzenlemek için OK"),
-                    isActive,
-                    () -> openSubMenu("profile_actions:" + p.id));
-        }
-        if (Profiles.canAdd(this)) {
-            row(tr("Add a person…", "Kişi ekle…"), () -> "›", this::promptAddPerson);
-        }
-        section(tr("OPTIONS", "SEÇENEKLER"));
-        row(tr("Ask who is watching on wake", "TV açıldığında kimin izlediğini sor"),
-                () -> Profiles.askOnWake(this) ? tr("On", "Açık") : tr("Off", "Kapalı"),
-                () -> Profiles.setAskOnWake(this, !Profiles.askOnWake(this)));
-        infoNote(tr("Each person keeps their own Keep Watching row and app order.",
-                "Her kişi kendi İzlemeye Devam Et satırını ve uygulama düzenini korur."));
-    }
-
     private void promptRenamePerson(Profiles.Profile p, int rowIdx) {
         android.widget.EditText in = new android.widget.EditText(this);
         in.setSingleLine(true);
@@ -1588,8 +1558,8 @@ public class SettingsActivity extends Activity {
                         "Bu işlem otomatik onarımı kapatır; Erişilebilirlik Servisi, Bildirim Erişimi, Varsayılan Ana Ekran ve diğer izinleri (yerel olarak, ADB açıksa onunla da) kaldırır ve ADB'yi kapatır.\n\nREYLauncher cihaz yöneticisi olmadığı için doğrudan da kaldırılabilir."))
                 .setPositiveButton(tr("Revoke All Permissions", "Tüm İzinleri Kaldır"), (d, w) -> {
                     AlertDialog progress = dialog(tr("Revoking Permissions…", "İzinler Kaldırılıyor…"))
-                            .setMessage(tr("Removing Device Admin and revoking all permissions…",
-                                    "Cihaz Yöneticisi ve tüm izinler kaldırılıyor…"))
+                            .setMessage(tr("Revoking all permissions…",
+                                    "Tüm izinler kaldırılıyor…"))
                             .setCancelable(false)
                             .create();
                     progress.show();
@@ -1641,10 +1611,6 @@ public class SettingsActivity extends Activity {
             subMenuAmbientThemes();
         } else if ("weather_source".equals(subId)) {
             subMenuWeatherSource();
-        } else if ("top_shelf".equals(subId)) {
-            subMenuTopShelf();
-        } else if (subId.startsWith("profile_actions:")) {
-            subMenuProfileActions(subId.substring("profile_actions:".length()));
         } else if (subId.startsWith("cp_app:")) {
             subMenuControlPanelApps(subId.substring("cp_app:".length()));
         } else if (subId.startsWith("cp_act:")) {
@@ -1755,67 +1721,6 @@ public class SettingsActivity extends Activity {
                 Weather.changed(this);
                 rebuildMainRows();
             });
-        }
-    }
-
-    private void subMenuTopShelf() {
-        mainHeadView.setText(tr("Classic Top Shelf", "Klasik Üst Raf"));
-        backSubMenuRow();
-        section(tr("TOP SHELF CONTENT", "ÜST RAF İÇERİĞİ"));
-        String cur = Suggestions.shelf(this);
-        String[][] opts = {
-            {Suggestions.SHELF_BOTH, tr("Recommendations & News", "Öneriler ve Haberler")},
-            {Suggestions.SHELF_RECS, tr("Recommendations", "Öneriler")},
-            {Suggestions.SHELF_NEWS, tr("News", "Haberler")},
-            {Suggestions.SHELF_NONE, tr("Off", "Kapalı")}
-        };
-        for (String[] pair : opts) {
-            final String k = pair[0];
-            final String n = pair[1];
-            choiceRow(n, null, k.equals(cur), () -> {
-                Suggestions.setShelf(this, k);
-                rebuildMainRows();
-            });
-        }
-    }
-
-    private void subMenuProfileActions(String profileId) {
-        Profiles.Profile found = null;
-        int idx = 0;
-        List<Profiles.Profile> all = Profiles.list(this);
-        for (int i = 0; i < all.size(); i++) {
-            if (all.get(i).id.equals(profileId)) {
-                found = all.get(i);
-                idx = i;
-                break;
-            }
-        }
-        if (found == null) {
-            closeSubMenu();
-            return;
-        }
-        final Profiles.Profile p = found;
-        final int rowIdx = idx;
-        String dispName = I18n.profileName(this, p.name);
-        mainHeadView.setText(dispName);
-        backSubMenuRow();
-        section(dispName);
-        row(tr("Switch to " + dispName, dispName + " profiline geç"),
-                () -> Profiles.current(this).id.equals(p.id) ? tr("Active", "Etkin") : "›",
-                () -> {
-                    Profiles.setCurrent(this, p.id);
-                    closeSubMenu();
-                });
-        row(tr("Rename…", "Yeniden adlandır…"),
-                () -> "›",
-                () -> promptRenamePerson(p, rowIdx));
-        if (all.size() > 1) {
-            row(tr("Remove person", "Kişiyi kaldır"),
-                    () -> "",
-                    () -> {
-                        Profiles.delete(this, p.id);
-                        closeSubMenu();
-                    });
         }
     }
 
@@ -2118,7 +2023,7 @@ public class SettingsActivity extends Activity {
                     }
                 });
 
-        row(tr("Power Off & Sleep Timer (Device Admin)", "Kapatma ve Uyku Zamanlayıcısı (Cihaz Yöneticisi)"),
+        row(tr("Power Off & Sleep Timer (Accessibility)", "Kapatma ve Uyku Zamanlayıcısı (Erişilebilirlik)"),
                 () -> Perms.hasAdmin(this) ? "✓  " + tr("Allowed", "İzin verildi") : "✗  " + tr("Not allowed", "İzin verilmedi"),
                 () -> Perms.requestAdmin(this));
 

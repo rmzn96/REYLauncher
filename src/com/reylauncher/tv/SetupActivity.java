@@ -652,38 +652,6 @@ public class SetupActivity extends Activity {
         }
         dots();
     }
-
-    /** This profile's Home Screen: recommendations and/or news on the top shelf, as two switches. */
-    void homeContent() {
-        backdrop.animate().alpha(0.5f).setDuration(300).start();
-        title(tr("Your Home Screen", "Ana Ekran\u0131n\u0131z"));
-        subtitle(tr("What appears at the top of Home, behind your apps. Choose any, all or none.",
-                "Uygulamalar\u0131n\u0131z\u0131n arkas\u0131nda, Ana Ekran\u0131n \u00fcst k\u0131sm\u0131nda ne g\u00f6r\u00fcnece\u011fini se\u00e7in."));
-        boolean recs = Suggestions.showRecs(this), news = Suggestions.showNews(this);
-        LinearLayout l = list();
-        option(l, tr("Recommendations", "\u00d6neriler"),
-                tr("Popular movies and series on your streaming services", "Yay\u0131n servislerinizdeki pop\u00fcler filmler ve diziler"), recs, () -> {
-            Suggestions.setShelf(this, !recs, news);
-            show(index, 0);
-            focusRow(0);
-        });
-        option(l, tr("News", "Haberler"),
-                tr("Headlines from your city and the world", "\u015eehrinizden ve d\u00fcnyadan man\u015fetler"), news, () -> {
-            Suggestions.setShelf(this, recs, !news);
-            show(index, 0);
-            focusRow(1);
-        });
-        boolean cw = Profiles.homePrefs(this).getBoolean("cw_enabled", true);
-        option(l, tr("Continue Watching", "\u0130zlemeye Devam Et"),
-                tr("What you were watching, mixed into the carousel", "\u0130zledi\u011finiz i\u00e7erikler ana ekranda g\u00f6sterilir"), cw, () -> {
-            Profiles.homePrefs(this).edit().putBoolean("cw_enabled", !cw).apply();
-            show(index, 0);
-            focusRow(2);
-        });
-        option(l, tr("Continue", "Devam Et"), recs || news || cw ? null : tr("Just your background for now", "\u015eimdilik yaln\u0131zca arka plan\u0131n\u0131z"), false, this::next);
-        dots();
-    }
-
     /** After re-building a page, put focus back on the row that was pressed. */
     void focusRow(int i) {
         View v = page.findViewWithTag("list");

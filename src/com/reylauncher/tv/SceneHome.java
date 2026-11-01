@@ -70,7 +70,6 @@ final class SceneHome {
     final List<MainActivity.AppEntry> dockEntries = new ArrayList<>();
 
     private final Map<String, Bitmap> logoCache = new HashMap<>();
-    private Bitmap demoArt1, demoArt2, demoArt3;
 
     boolean moreExpanded = false;
     boolean backDownInHome = false;
@@ -380,34 +379,8 @@ final class SceneHome {
             out.add(c);
         }
 
-        // REYLauncher: only what was really watched; no made-up showcase cards.
+        // Only titles that were really played (REYLauncher shows no made-up examples).
         return out;
-    }
-
-    private WatchCardData makeDemoCard(String key, String pkg, String appName,
-                                       String title, String sub, float prog, Bitmap art) {
-        WatchCardData d = new WatchCardData();
-        d.key = key;
-        d.pkg = pkg;
-        d.appName = appName;
-        d.title = title;
-        d.subtitle = sub;
-        d.progress = prog;
-        d.thumb = art;
-        d.removable = false;
-        return d;
-    }
-
-    private void ensureDemoArt() {
-        if (demoArt1 == null) {
-            demoArt1 = makeThumbFromScene("backgrounds/scene-fog.jpg", 0xFF10222E, 0xFF1D4052);
-        }
-        if (demoArt2 == null) {
-            demoArt2 = makeThumbFromScene("backgrounds/scene-dawn.jpg", 0xFF3A2418, 0xFF6B4226);
-        }
-        if (demoArt3 == null) {
-            demoArt3 = makeThumbFromScene("backgrounds/scene-water.jpg", 0xFF142A3C, 0xFF285570);
-        }
     }
 
     private Bitmap makeThumbFromScene(String asset, int c1, int c2) {
@@ -1009,30 +982,6 @@ final class SceneHome {
     }
 
     private void openDockApp(View tile, MainActivity.AppEntry a) {
-        if (a.key != null && a.key.startsWith("demo_app:")) {
-            for (MainActivity.AppEntry e : host.all.values()) {
-                if (a.pkg != null && a.pkg.equals(e.pkg) && e.launch != null) {
-                    host.launchAnimated(tile, e);
-                    return;
-                }
-            }
-            Intent launch = host.getPackageManager().getLeanbackLaunchIntentForPackage(a.pkg);
-            if (launch == null) launch = host.getPackageManager().getLaunchIntentForPackage(a.pkg);
-            if (launch != null) {
-                host.prepareForAppLaunch();
-                if (Suggestions.start(host, launch)) {
-                    host.overridePendingTransition(R.anim.app_open_enter, R.anim.app_open_exit);
-                    final String pkg = a.pkg;
-                    host.io.execute(() -> host.noteLaunched(pkg));
-                }
-                return;
-            }
-            // Try opening Play Store or Settings if not installed on this device
-            if (!Suggestions.start(host, a.launch)) {
-                host.toast(I18n.s(host, a.label + " is not installed on this TV", a.label + " bu TV'de yüklü değil"));
-            }
-            return;
-        }
         host.launchAnimated(tile, a);
     }
 
@@ -1102,7 +1051,7 @@ final class SceneHome {
             });
         }
 
-        if (a.pkg != null && !a.key.startsWith("demo_app:") && !MainActivity.INPUTS_KEY.equals(a.key)) {
+        if (a.pkg != null && !MainActivity.INPUTS_KEY.equals(a.key)) {
             labels.add(I18n.s(host, "App Info", "Uygulama Bilgileri"));
             actions.add(() -> host.startSafe(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                     Uri.parse("package:" + a.pkg))));
@@ -1228,13 +1177,6 @@ final class SceneHome {
             p.setShader(new LinearGradient(0, 0, 0, s, 0xFF6E6E73, 0xFF2C2C2E, Shader.TileMode.CLAMP));
             c.drawRect(0, 0, s, s, p);
             Bitmap g = Glyphs.get("input", Math.round(s * 0.52f), Color.WHITE);
-            c.drawBitmap(g, (s - g.getWidth()) / 2f, (s - g.getHeight()) / 2f, null);
-            return out;
-        }
-        if (MainActivity.PRESENT_KEY.equals(a.key)) {
-            p.setShader(new LinearGradient(0, 0, 0, s, 0xFF5682FF, 0xFF2B50CC, Shader.TileMode.CLAMP));
-            c.drawRect(0, 0, s, s, p);
-            Bitmap g = Glyphs.get("present", Math.round(s * 0.52f), Color.WHITE);
             c.drawBitmap(g, (s - g.getWidth()) / 2f, (s - g.getHeight()) / 2f, null);
             return out;
         }

@@ -191,7 +191,7 @@ final class LocalAdb {
     }
 
     /**
-     * Lightweight, zero-allocation permission status check for background Keep Alive.
+     * Lightweight, zero-allocation permission status check for the accessibility auto-repair.
      * Only checks if the Accessibility Service setting was turned off by the TV OS or polluted
      * by a conflicting HDMI service. Never triggers background loops for Default Home or Notification Listener.
      */
@@ -550,10 +550,10 @@ final class LocalAdb {
             return;
         }
         final Context appCtx = c.getApplicationContext();
-        // 1. Disable Keep Alive immediately so it does not re-grant permissions
+        // 1. Turn auto-repair off first so it does not switch accessibility back on
         setKeepAliveEnabled(appCtx, false);
 
-        // 2. Revoke Device Admin and Accessibility directly via Android APIs (works even without ADB!)
+        // 2. Switch our accessibility service off directly via Android APIs (works without ADB)
         try {
             SleepReceiver.setTimer(appCtx, 0);
         } catch (Throwable ignored) { }

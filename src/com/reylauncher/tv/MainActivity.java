@@ -76,7 +76,6 @@ public class MainActivity extends Activity {
 
     static final int COLS = 6;
     static final String SETTINGS_KEY = "special:settings";
-    static final String PRESENT_KEY = "special:present";
     static final String INPUTS_KEY = "special:inputs";
     static final String FOLDER_KEY = "special:folder";
     static final String PREF_ORDER = "order";
@@ -87,15 +86,22 @@ public class MainActivity extends Activity {
     /** Packages placed first (in this order) until the user rearranges the grid. */
     static final List<String> DEFAULT_ORDER = Arrays.asList(
             "com.netflix.ninja",
+            "com.google.android.youtube.tv",
+            "com.disney.disneyplus",
             "com.amazon.amazonvideo.livingroom",
-            "org.smarttube.stable",
-            "in.startv.hotstar",
+            "com.wbd.stream",
+            "com.beonetv.tod", "com.digiturk.tod.mobil",
+            "com.exxen.android",
+            "com.trt.tabii.android",
+            "com.digiturk.iq.mobil",
+            "com.turkcell.ott",
+            "com.ttnet.tivibutv", "com.ttnet.tivibucep",
+            "com.dsmart.go.android",
+            "com.ssportplus.dice",
+            "com.dogusdigital.puhutv",
             "com.apple.atve.androidtv.appletv",
             "com.spotify.tv.android",
-            "com.mitv.tvhome.mitvplus",
-            "com.google.android.youtube.tv",
-            "org.videolan.vlc",
-            "io.github.jqssun.airplay");
+            "org.videolan.vlc");
 
     static final PathInterpolator EASE = new PathInterpolator(0.2f, 0f, 0f, 1f);
     /** tvOS focused icon is ~1.2x its resting size (303x183 vs 248x148 px in Apple's reference). */
@@ -3316,13 +3322,12 @@ public class MainActivity extends Activity {
     int priority(AppEntry e) {
         if (INPUTS_KEY.equals(e.key)) return -1;
         if (isSettings(e)) return 2000;
-        if (PRESENT_KEY.equals(e.key)) return 1999;
         int i = DEFAULT_ORDER.indexOf(e.pkg);
         return i >= 0 ? i : 1000;
     }
 
     boolean isSettings(AppEntry e) {
-        return SETTINGS_KEY.equals(e.key) || TV_SETTINGS.equals(e.pkg) || PRESENT_KEY.equals(e.key);
+        return SETTINGS_KEY.equals(e.key) || TV_SETTINGS.equals(e.pkg);
     }
 
     List<Inputs.Input> inputs = new ArrayList<>();
