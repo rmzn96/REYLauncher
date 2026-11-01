@@ -343,11 +343,13 @@ final class SceneHome {
             shelfBox.setVisibility(View.GONE);
             return;
         }
-        shelfBox.setVisibility(View.VISIBLE);
-
         host.io.execute(() -> {
             List<WatchCardData> cards = loadWatchCards();
-            host.handler.post(() -> populateWatchRow(cards));
+            host.handler.post(() -> {
+                // Nothing watched yet: no shelf at all (it is shown again as soon as there is something).
+                shelfBox.setVisibility(cards.isEmpty() || moreExpanded || !host.cwEnabled() ? View.GONE : View.VISIBLE);
+                if (!cards.isEmpty()) populateWatchRow(cards);
+            });
         });
     }
 
@@ -378,22 +380,7 @@ final class SceneHome {
             out.add(c);
         }
 
-        // Fill remaining up to 3 with couch-tv showcase cards so the shelf always looks rich
-        if (out.size() < 3) {
-            ensureDemoArt();
-            WatchCardData[] demos = {
-                makeDemoCard("demo:1", "com.netflix.ninja", "NETFLIX",
-                        "Severance", "S2 · E4 — Woes Hollow", 0.62f, demoArt1),
-                makeDemoCard("demo:2", "com.disney.disneyplus", "DISNEY+",
-                        "The Bear", "S3 · E6 — Napkins", 0.38f, demoArt2),
-                makeDemoCard("demo:3", "au.net.abc.iview", "ABC IVIEW",
-                        "Planet Earth III", I18n.s(host, "E2 — Coasts", "B2 — Kıyılar"), 0.78f, demoArt3)
-            };
-            for (WatchCardData d : demos) {
-                if (out.size() >= 3) break;
-                out.add(d);
-            }
-        }
+        // REYLauncher: only what was really watched; no made-up showcase cards.
         return out;
     }
 
