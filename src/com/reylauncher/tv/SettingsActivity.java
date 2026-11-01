@@ -1446,12 +1446,37 @@ public class SettingsActivity extends Activity {
         LocalAdb.probePortAsync(this, () -> runOnUiThread(this::refreshAll));
     }
 
+    /** The display mode sent over HDMI, e.g. "3840×2160 · 60 Hz". */
+    private String displayOutput() {
+        try {
+            android.view.Display.Mode m = getWindowManager().getDefaultDisplay().getMode();
+            return m.getPhysicalWidth() + "×" + m.getPhysicalHeight() + " · " + Math.round(m.getRefreshRate()) + " Hz";
+        } catch (Throwable t) {
+            return "?";
+        }
+    }
+
+    /** The size apps (and REYLauncher) are drawn at; video can still play at the full output size. */
+    private String displayUi() {
+        try {
+            android.util.DisplayMetrics dm = new android.util.DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getRealMetrics(dm);
+            return dm.widthPixels + "×" + dm.heightPixels + " · " + dm.densityDpi + " dpi";
+        } catch (Throwable t) {
+            return "?";
+        }
+    }
+
     void pageAbout() {
         section(tr("APPLICATION", "UYGULAMA"));
         infoRow(tr("Home screen", "Ana ekran"), "REYLauncher", null);
         infoRow(tr("Based on", "Temel aldığı proje"), "tvOS Launcher (techgenius) · Apache 2.0", null);
         infoRow(tr("Version", "Sürüm"), version(), null);
         infoRow(tr("Settings kept", "Ayarların saklandığı yer"), tr("On this TV", "Bu TV'de"), null);
+
+        section(tr("DISPLAY", "EKRAN"));
+        infoRow(tr("Output to the TV", "TV'ye giden çıkış"), displayOutput(), null);
+        infoRow(tr("Home screen drawn at", "Ana ekranın çizildiği çözünürlük"), displayUi(), null);
 
         section(tr("RESET", "SIFIRLAMA"));
         row(tr("Reset settings to defaults", "Ayarları varsayılana sıfırla"),
