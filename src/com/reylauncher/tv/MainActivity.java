@@ -242,6 +242,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        io.execute(() -> Suggestions.trimImageCache(getApplicationContext()));  // keep search posters under 20 MB / 7 days
         activeInstance = this;
         // The wallpaper/artwork always covers the screen: skip the window's own full-screen fill
         // (this Mali-450 GPU is fill-rate bound, so every hidden full-screen layer costs frames).

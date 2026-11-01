@@ -308,6 +308,33 @@ final class Suggestions {
         }
     }
 
+    /**
+     * Keeps the downloaded-image cache (search posters) small: files older than 7 days go, then the
+     * oldest ones until it is under 20 MB. Call off the main thread.
+     */
+    static void trimImageCache(Context c) {
+        try {
+            File dir = new File(c.getCacheDir(), "tmdb");
+            File[] files = dir.listFiles();
+            if (files == null) return;
+            long now = System.currentTimeMillis(), total = 0;
+            List<File> kept = new ArrayList<>();
+            for (File f : files) {
+                if (now - f.lastModified() > 7L * 24 * 3600_000L || f.getName().endsWith(".part")) f.delete();
+                else {
+                    kept.add(f);
+                    total += f.length();
+                }
+            }
+            java.util.Collections.sort(kept, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+            for (int i = 0; i < kept.size() && total > 20L * 1024 * 1024; i++) {
+                total -= kept.get(i).length();
+                kept.get(i).delete();
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
     static byte[] readAll(InputStream in) throws Exception {
         try (InputStream is = in) {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();

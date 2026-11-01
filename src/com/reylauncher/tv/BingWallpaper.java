@@ -22,7 +22,8 @@ import java.util.Locale;
  *   1. GET https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=tr-TR
  *   2. GET https://www.bing.com/th?id=..._UHD.jpg (the 4K 3840x2160 photo, about 3.5 MB), or the
  *      1920x1080 one if the 4K image is not available; always on www.bing.com.
- * The JPEG is stored as downloaded (not re-encoded) and decoded at the size the screen is drawn at.
+ * The JPEG is stored as downloaded (not re-encoded), one file overwritten each day and deleted when the
+ * Bing scene and background are both off, and decoded at the size the screen is drawn at.
  * No account, key, cookie or information about this TV is sent; Bing sees only the requests.
  */
 final class BingWallpaper {
@@ -60,9 +61,16 @@ final class BingWallpaper {
         return scene || classic;
     }
 
-    /** Fetches today's photo if it is in use and not fetched yet today. {@code done} runs on a background thread. */
+    /** Fetches today's photo if it is in use and not fetched yet today; deletes it when nothing uses it. */
     static void refreshIfStale(Context c, Done done) {
-        if (c == null || !inUse(c)) return;
+        if (c == null) return;
+        if (!inUse(c)) {
+            if (!running) {
+                CustomMedia.deleteSceneAndClassicWallpaper(c);
+                prefs(c).edit().remove(K_DAY).apply();
+            }
+            return;
+        }
         boolean have = CustomMedia.hasCustomSceneWallpaper(c, 1);
         if (have && today().equals(prefs(c).getString(K_DAY, ""))) return;
         refreshNow(c, done);

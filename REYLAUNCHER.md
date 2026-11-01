@@ -27,7 +27,10 @@ dosyalarında duruyor. Paket adı `com.reylauncher.tv`, yani orijinal uygulamayl
 - **Bing günün fotoğrafı (4K):** "Özel 1…5" duvar kağıtları yerine tek bir "Bing günün fotoğrafı" sahnesi
   (Gece Sahneleri) ve Klasik görünüm arka planı. Fotoğraf 4K (3840×2160, ~3,5 MB) indirilir ve olduğu
   gibi saklanır; ekran hangi çözünürlükte çiziliyorsa o boyutta açılır (Ayarlar → Hakkında → Ekran'da
-  görünür). 4K yoksa 1920×1080 indirilir. Hazır sahneler aynen duruyor.
+  görünür). 4K yoksa 1920×1080 indirilir. Kutuda tek dosya tutulur, her gün üzerine yazılır; Bing
+  sahnesi ve arka planı kapatılınca silinir. Hazır sahneler aynen duruyor.
+- **Depolama temizliği:** Film araması afiş önbelleği 7 günden eski dosyaları siler ve 20 MB'ı geçmez;
+  "İzlemeye devam et" listesinden çıkan içeriklerin resimleri silinir.
 - **Film/dizi araması Türkiye'ye göre** (JustWatch, Türkçe).
 - **Türk uygulama logoları:** TOD, Exxen, tabii, puhutv, TV+, Tivibu GO, beIN CONNECT, D-Smart GO,
   S Sport Plus.

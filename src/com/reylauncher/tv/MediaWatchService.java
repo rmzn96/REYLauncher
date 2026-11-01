@@ -218,6 +218,22 @@ public class MediaWatchService extends NotificationListenerService {
                 }
             }
             if (changed) write(c, keep);
+            // Artwork of titles that left the list (finished, pushed out, or another profile's old
+            // entries are kept by their own list) is deleted too.
+            try {
+                java.util.Set<String> used = new java.util.HashSet<>();
+                for (int i = 0; i < keep.length(); i++) {
+                    JSONObject o = keep.optJSONObject(i);
+                    if (o != null) used.add(o.optString("art"));
+                }
+                File[] files = new File(c.getFilesDir(), "cw").listFiles();
+                if (files != null && Profiles.list(c).size() <= 1) {
+                    for (File f : files) {
+                        if (!used.contains(f.getAbsolutePath())) f.delete();
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
             return keep;
         }
 

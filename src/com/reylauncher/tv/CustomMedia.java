@@ -718,8 +718,9 @@ public final class CustomMedia {
         return (s == 1) ? KEY_SCENE_WALL_TS : (KEY_SCENE_WALL_TS + "_" + s);
     }
 
+    /** REYLauncher: the Classic background is the same Bing photo file as the custom scene (one copy on disk). */
     private static File classicWallFile(Context c) {
-        return new File(c.getFilesDir(), "custom_classic_wallpaper.jpg");
+        return sceneWallFile(c, 1);
     }
 
     public static boolean hasCustomSceneWallpaper(Context c) {
@@ -802,7 +803,7 @@ public final class CustomMedia {
         bounds.inJustDecodeBounds = true;
         BitmapFactory.decodeByteArray(jpeg, 0, jpeg.length, bounds);
         if (bounds.outWidth < 640 || bounds.outHeight < 360 || !"image/jpeg".equals(bounds.outMimeType)) return false;
-        if (!writeAtomically(sceneWallFile(c, 1), jpeg) || !writeAtomically(classicWallFile(c), jpeg)) return false;
+        if (!writeAtomically(sceneWallFile(c, 1), jpeg)) return false;
         long ts = System.currentTimeMillis();
         prefs(c).edit().putLong(sceneWallTsKey(1), ts).putLong(KEY_CLASSIC_WALL_TS, ts).apply();
         cachedSceneWalls[1] = null;
@@ -822,6 +823,19 @@ public final class CustomMedia {
             return false;
         }
         return tmp.renameTo(f);
+    }
+
+    /** Deletes the stored Bing photo (used when neither the Bing scene nor the Bing background is on). */
+    public static void deleteSceneAndClassicWallpaper(Context c) {
+        if (c == null) return;
+        new File(c.getFilesDir(), "custom_classic_wallpaper.jpg").delete();  // older two-copy layout
+        if (sceneWallFile(c, 1).delete()) {
+            prefs(c).edit().remove(sceneWallTsKey(1)).remove(KEY_CLASSIC_WALL_TS).apply();
+        }
+        cachedSceneWalls[1] = null;
+        cachedSceneWallTs[1] = -1L;
+        cachedClassicWall = null;
+        cachedClassicWallTs = -1L;
     }
 
     /** The size the screen is drawn at (landscape), e.g. 1920x1080 or 3840x2160. */
