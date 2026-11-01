@@ -52,7 +52,7 @@ final class Suggestions {
     /** POOL titles are fetched per service; PER_SOURCE of them are picked at random each refresh. */
     static final int PER_SOURCE = 3, POOL = 20, MAX_ITEMS = 10;
 
-    /** A streaming service available in India: TMDB provider id, display name, Android TV package. */
+    /** A streaming service: TMDB provider id, display name, Android TV package, JustWatch names. */
     static final class Provider {
         final int id;
         final String name, pkg, jwShort, jwTech;
@@ -66,13 +66,14 @@ final class Suggestions {
         }
     }
 
+    /** Streaming services in Turkey that REYLauncher knows by package (search falls back to these). */
     static final List<Provider> PROVIDERS = Arrays.asList(
             new Provider(8, "Netflix", "com.netflix.ninja", "nfx", "netflix"),
             new Provider(119, "Prime Video", "com.amazon.amazonvideo.livingroom", "prv", "amazonprimevideo"),
-            new Provider(2336, "JioHotstar", "in.startv.hotstar", "jhs", "jiohotstar"),
-            new Provider(350, "Apple TV", "com.apple.atve.androidtv.appletv", "atp", "appletvplus"),
-            new Provider(232, "ZEE5", "com.graymatrix.did", "zee", "zee5"),
-            new Provider(237, "SonyLIV", "com.sonyliv", "snl", "sonyliv"));
+            new Provider(337, "Disney+", "com.disney.disneyplus", "dnp", "disneyplus"),
+            new Provider(1899, "HBO Max", "com.wbd.stream", "mxx", "max"),
+            new Provider(384, "HBO Max", "com.wbd.stream", "hbm", "hbomax"),
+            new Provider(350, "Apple TV", "com.apple.atve.androidtv.appletv", "atp", "appletvplus"));
 
     /**
      * Apps that open Cinemeta titles by IMDb id. Not streaming services, so they never appear in

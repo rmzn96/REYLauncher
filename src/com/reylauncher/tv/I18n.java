@@ -32,26 +32,13 @@ public final class I18n {
     public static final String LANG_JA = "ja";
     public static final String LANG_ZH = "zh";
 
+    /** REYLauncher offers Turkish and English only (the other translations below are no longer selectable). */
     public static final String[][] LANGUAGES = {
-        {LANG_EN, "English", "Use REYLauncher in English"},
         {LANG_TR, "Türkçe", "REYLauncher'ı Türkçe kullanın"},
-        {LANG_SV, "Svenska", "Använd REYLauncher på svenska"},
-        {LANG_HI, "हिन्दी (Indian)", "REYLauncher का उपयोग हिन्दी में करें"},
-        {LANG_ES, "Español", "Usar REYLauncher en español"},
-        {LANG_FR, "Français", "Utiliser REYLauncher en français"},
-        {LANG_DE, "Deutsch", "REYLauncher auf Deutsch verwenden"},
-        {LANG_IT, "Italiano", "Usa REYLauncher in italiano"},
-        {LANG_RU, "Русский", "Использовать REYLauncher на русском"},
-        {LANG_PT, "Português", "Usar o REYLauncher em português"},
-        {LANG_AR, "العربية", "استخدم REYLauncher باللغة العربية"},
-        {LANG_JA, "日本語", "REYLauncher を日本語で使用する"},
-        {LANG_ZH, "中文", "使用中文版 REYLauncher"}
+        {LANG_EN, "English", "Use REYLauncher in English"}
     };
 
-    private static final Set<String> SUPPORTED = new HashSet<>(Arrays.asList(
-            LANG_EN, LANG_TR, LANG_SV, LANG_HI, LANG_ES, LANG_FR, LANG_DE,
-            LANG_IT, LANG_RU, LANG_PT, LANG_AR, LANG_JA, LANG_ZH
-    ));
+    private static final Set<String> SUPPORTED = new HashSet<>(Arrays.asList(LANG_TR, LANG_EN));
 
     private static String cachedLang;
     private static final Map<String, String> TR_MAP = new HashMap<>();
@@ -887,7 +874,7 @@ public final class I18n {
         if (sep > 0) {
             code = code.substring(0, sep);
         }
-        return SUPPORTED.contains(code) ? code : LANG_EN;
+        return SUPPORTED.contains(code) ? code : LANG_TR;
     }
 
     public static void resetCache() {
@@ -922,7 +909,7 @@ public final class I18n {
     }
 
     public static void setLang(Context c, String lang) {
-        String valid = (lang != null && SUPPORTED.contains(lang)) ? lang : LANG_EN;
+        String valid = (lang != null && SUPPORTED.contains(lang)) ? lang : LANG_TR;
         cachedLang = valid;
         c.getSharedPreferences("settings", Context.MODE_PRIVATE)
                 .edit().putString("lang", valid).apply();

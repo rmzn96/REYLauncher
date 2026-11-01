@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Search data: titles from JustWatch (every service in India, with each service's link) and
+ * Search data: titles from JustWatch (every service in Turkey, with each service's link) and
  * Stremio's Cinemeta catalogue, plus the generic matching of a streaming service to the app that
  * plays it. Nothing here touches views; network calls block and run off the UI thread.
  */
@@ -138,15 +138,15 @@ final class Search {
 
     // ------------------------------------------------------------------ titles
 
-    static final String JW_SEARCH = "query S($q: String!, $first: Int!) { popularTitles(country: IN, first: $first,"
+    static final String JW_SEARCH = "query S($q: String!, $first: Int!) { popularTitles(country: TR, first: $first,"
             + " filter: {searchQuery: $q}) { edges { node { objectType"
-            + " content(country: IN, language: \"en\") { title originalReleaseYear shortDescription"
+            + " content(country: TR, language: \"tr\") { title originalReleaseYear shortDescription"
             + " posterUrl(profile: S332, format: JPG) backdrops(profile: S1440, format: JPG) { backdropUrl }"
-            + " genres { translation(language: \"en\") } externalIds { imdbId } scoring { imdbScore } }"
-            + " offers(country: IN, platform: WEB) { monetizationType standardWebURL deeplinkURL(platform: ANDROID_TV)"
+            + " genres { translation(language: \"tr\") } externalIds { imdbId } scoring { imdbScore } }"
+            + " offers(country: TR, platform: WEB) { monetizationType standardWebURL deeplinkURL(platform: ANDROID_TV)"
             + " package { clearName technicalName icon(profile: S100, format: PNG) } } } } } }";
 
-    /** Titles matching q on any service in India (JustWatch), best match first. */
+    /** Titles matching q on any service in Turkey (JustWatch), best match first. Sends only the search text. */
     static List<Title> titles(Context c, String q, Apps apps) throws Exception {
         JSONObject vars = new JSONObject().put("q", q).put("first", MAX_TITLES);
         JSONObject res = post("https://apis.justwatch.com/graphql",
