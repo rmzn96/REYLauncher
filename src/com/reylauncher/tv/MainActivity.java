@@ -299,7 +299,6 @@ public class MainActivity extends Activity {
         registerPackageReceiver();
         wakeReceiver = new BroadcastReceiver() {
             @Override public void onReceive(Context c, Intent i) {
-                AirPlayGuard.check(c, true);
                 LocalAdb.scheduleKeepAliveRepair(c, 1500L);
                 if (!Profiles.askOnWake(c) || Profiles.list(c).size() < 2) return;
                 if (resumed) {
@@ -4112,7 +4111,6 @@ public class MainActivity extends Activity {
         netIcon.setImageBitmap(netGlyph(state, eth, bars, dp(20)));
         netIcon.setContentDescription(state == 2 ? "Online" : state == 1 ? "No internet" : "Offline");
         // Back online: refresh what needs the internet.
-        if (state == 2) AirPlayGuard.check(this, back);
         if (state == 2 && back) {
             Weather.refresh(this, true, this::updateWeather);
             loadHero();
@@ -4411,7 +4409,6 @@ public class MainActivity extends Activity {
             updateWeather();
             // Carousel content rotates even if Home stays open for hours (fetches only when stale).
             if (++tickCount % 5 == 0 && !shelfView.hasFocus()) loadHero();
-            if (tickCount % 15 == 0) AirPlayGuard.check(MainActivity.this, false);
             LocalAdb.checkAndRepairPermissionsIfNeeded(MainActivity.this, false);
             updateNet();
             handler.postDelayed(this, 60 * 1000L);
