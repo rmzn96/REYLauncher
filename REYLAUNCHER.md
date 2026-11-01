@@ -96,7 +96,10 @@ Cihaz yöneticisi olmadığı için normal yoldan kaldırılır: Ayarlar → Uyg
 
 ## Derleme
 
-- Resmi Android SDK ile: `./build.sh` (aapt2 + d8 + apksigner).
-- SDK indirilemeyen ortamda kullanılan yol: `tools/build-local.sh` (Ubuntu paketleri + Maven Central;
-  ayrıntılar dosyanın başında). Yayımlanan APK'lar bununla derlendi.
+- **Resmi yol (yayımlanan APK'lar böyle derlenir):** Android SDK build-tools 34.0.0 + platform android-34,
+  **JDK 17** ile `./build.sh` (aapt2 + d8 + apksigner). Çıktı: `build/REYLauncher.apk`.
+  JDK 21 ile derlenen sınıflarda d8 8.2 hata veriyor (orijinal kodda da aynı); JDK 17 kullanın.
+  Release imzası için: `RELEASE_KEYSTORE`, `RELEASE_KEYSTORE_PASS`, `RELEASE_KEY_ALIAS` ortam değişkenleri.
+- Android SDK indirilemeyen ortamlar için yedek yol: `tools/build-local.sh` (Ubuntu paketleri + Maven
+  Central; ayrıntılar dosyanın başında).
 - İmza anahtarı bu repoda **yok** (`*.p12`, `*.pass` `.gitignore`'da).

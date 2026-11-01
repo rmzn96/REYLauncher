@@ -73,7 +73,7 @@ if (-not (Test-Path $KS)) {
 }
 
 & "$BT\apksigner.bat" sign --ks $KS --ks-pass pass:android --key-pass pass:android `
-    --out build\tvos-home.apk build\aligned.apk
+    --out build\REYLauncher.apk build\aligned.apk
 if ($LASTEXITCODE -ne 0) { throw "apksigner failed" }
 
-Write-Host "Built build\tvos-home.apk"
+Write-Host "Built build\REYLauncher.apk"
