@@ -286,10 +286,7 @@ final class Perms {
                                         CleanYourTv.showDisableSystemLaunchersDialog(a, null);
                                     }
                                 } else {
-                                    lastResort(a, I18n.s(a, "Home screen", "Ana ekran"),
-                                            "adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.reylauncher.tv\n"
-                                            + "adb shell cmd package set-home-activity com.reylauncher.tv/.MainActivity\n"
-                                            + "adb shell pm disable-user --user 0 com.google.android.tvlauncher");
+                                    adbFailed(a, msg);
                                 }
                             }));
                             break;
@@ -337,6 +334,34 @@ final class Perms {
     }
 
     /** Only when the TV has no screen for it: explain plainly, with the command for whoever installs the TV. */
+    /** Says why the local ADB connection failed, with the one thing to do about it. */
+    static void adbFailed(Activity a, String msg) {
+        String text;
+        if (!LocalAdb.isAdbSettingEnabled(a)) {
+            text = I18n.s(a,
+                    "USB debugging is off.\n\nSettings \u2192 System \u2192 About: press \u201cAndroid TV OS build\u201d 7 times. Then Settings \u2192 System \u2192 Developer options \u2192 turn on USB debugging, and try again.",
+                    "USB hata ay\u0131klama kapal\u0131.\n\nAyarlar \u2192 Sistem \u2192 Hakk\u0131nda: \u201cAndroid TV OS derlemesi\u201dne 7 kez bas. Sonra Ayarlar \u2192 Sistem \u2192 Geli\u015ftirici se\u00e7enekleri \u2192 USB hata ay\u0131klamay\u0131 a\u00e7 ve tekrar dene.");
+        } else if ("PORT_CLOSED".equals(msg)) {
+            text = I18n.s(a,
+                    "USB debugging is on, but this box does not accept ADB connections on port 5555, so REYLauncher cannot connect to it.",
+                    "USB hata ay\u0131klama a\u00e7\u0131k, ama bu kutu 5555 portundan ADB ba\u011flant\u0131s\u0131 kabul etmiyor; REYLauncher ba\u011flanam\u0131yor.");
+        } else {
+            text = I18n.s(a,
+                    "The connection was refused or timed out. When \u201cAllow USB debugging?\u201d appears on the TV, press Allow, then try again.",
+                    "Ba\u011flant\u0131 reddedildi ya da zaman a\u015f\u0131m\u0131na u\u011frad\u0131. TV'de \u201cUSB hata ay\u0131klamaya izin verilsin mi?\u201d \u00e7\u0131k\u0131nca \u0130zin ver'e bas ve tekrar dene.");
+        }
+        new AlertDialog.Builder(a, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle(I18n.s(a, "Could not connect to ADB", "ADB'ye ba\u011flan\u0131lamad\u0131"))
+                .setMessage(text)
+                .setPositiveButton(I18n.s(a, "OK", "Tamam"), null)
+                .setNeutralButton(I18n.s(a, "Developer options", "Geli\u015ftirici se\u00e7enekleri"), (d, w) -> {
+                    if (!tryStart(a, new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))) {
+                        tryStart(a, new Intent(Settings.ACTION_DEVICE_INFO_SETTINGS));
+                    }
+                })
+                .show();
+    }
+
     private static void lastResort(Activity a, String what, String cmd) {
         new AlertDialog.Builder(a, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                 .setTitle(what)
