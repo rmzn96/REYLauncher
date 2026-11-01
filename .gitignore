@@ -11,3 +11,7 @@ techolay.md
 xda.md
 reddit.md
 
+
+# REYLauncher signing key (kept outside the repository)
+*.p12
+*.pass

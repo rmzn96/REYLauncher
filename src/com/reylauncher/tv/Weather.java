@@ -26,8 +26,8 @@ import java.util.TimeZone;
 /**
  * Current weather and a 5-day forecast from free services that need no key: Open-Meteo,
  * MET Norway (Yr) and wttr.in. The chosen source is tried first and the others are fallbacks.
- * The location comes from the internet address (ipapi.co, ipwho.is, geojs.io) unless a city is
- * chosen in Settings. Every source is stored in one format, cached, and refreshed on a schedule
+ * The location comes from the internet address (ipapi.co, ipwho.is, geojs.io; at most once a week)
+ * unless a city is chosen in Settings, which sends only the city search text to Open-Meteo. Every source is stored in one format, cached, and refreshed on a schedule
  * (every 15 minutes by default).
  */
 final class Weather {
@@ -38,7 +38,7 @@ final class Weather {
     static final String SRC_OPEN_METEO = "openmeteo", SRC_MET = "met", SRC_WTTR = "wttr";
     static final String[] SOURCES = {SRC_OPEN_METEO, SRC_MET, SRC_WTTR};
     static final int[] REFRESH_CHOICES = {10, 15, 30, 60};
-    static final String UA = "tvOSLauncher/2.0 (Android TV launcher)";
+    static final String UA = "REYLauncher/1.0 (Android TV launcher)";
 
     private Weather() {
     }
@@ -239,10 +239,22 @@ final class Weather {
                     lon = p.getFloat(K_LON, 0);
                     place = p.getString(K_PLACE, "");
                 } else {
-                    double[] ll = new double[2];
-                    place = locate(ll);
-                    lat = ll[0];
-                    lon = ll[1];
+                    // Automatic: ask an IP-location service at most once a week and reuse the answer,
+                    // instead of on every refresh. Choosing a city in Settings stops these lookups.
+                    long at = p.getLong("auto_at", 0L);
+                    if (at > 0L && System.currentTimeMillis() - at < 7L * 24 * 3600_000L) {
+                        lat = p.getFloat("auto_lat", 0);
+                        lon = p.getFloat("auto_lon", 0);
+                        place = p.getString("auto_place", "");
+                    } else {
+                        double[] ll = new double[2];
+                        place = locate(ll);
+                        lat = ll[0];
+                        lon = ll[1];
+                        p.edit().putLong("auto_at", System.currentTimeMillis())
+                                .putFloat("auto_lat", (float) lat).putFloat("auto_lon", (float) lon)
+                                .putString("auto_place", place).apply();
+                    }
                 }
                 boolean f = units(c).equals("f");
                 // The chosen source first, then the others.

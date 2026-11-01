@@ -203,39 +203,11 @@ final class Search {
      * Stremio's catalogue search (Cinemeta), for titles JustWatch doesn't list. Only used when
      * Stremio or Nuvio is installed, since those are the only apps that can open them.
      */
-    static List<Title> stremio(Context c, String q) throws Exception {
-        List<Title> out = new ArrayList<>();
-        String enc = URLEncoder.encode(q, "UTF-8").replace("+", "%20");
-        for (String kind : new String[]{"movie", "series"}) {
-            JSONObject res = get("https://v3-cinemeta.strem.io/catalog/" + kind + "/top/search=" + enc + ".json");
-            JSONArray metas = res.optJSONArray("metas");
-            for (int i = 0; metas != null && i < metas.length() && i < 10; i++) {
-                JSONObject m = metas.getJSONObject(i);
-                String id = m.optString("id");
-                if (!id.startsWith("tt")) continue;
-                Title t = new Title();
-                t.title = m.optString("name");
-                t.type = kind.equals("series") ? "tv" : "movie";
-                String yr = m.optString("releaseInfo", m.optString("year"));
-                t.year = yr.length() >= 4 ? yr.substring(0, 4) : "";
-                t.overview = m.optString("description");
-                t.poster = m.optString("poster");
-                t.backdrop = m.optString("background");
-                t.imdb = id;
-                t.rating = m.optDouble("imdbRating", 0);
-                if (Double.isNaN(t.rating)) t.rating = 0;
-                JSONArray g = m.optJSONArray("genres");
-                List<String> gn = new ArrayList<>();
-                for (int j = 0; g != null && j < g.length() && gn.size() < 2; j++) gn.add(g.optString(j));
-                t.genres = String.join(", ", gn);
-                addStremio(c, t);
-                out.add(t);
-            }
-        }
-        return out;
+    /** REYLauncher: Stremio's Cinemeta catalogue is not searched (no request is made). */
+    static List<Title> stremio(Context c, String q) {
+        return new ArrayList<>();
     }
 
-    /** REYLauncher: Stremio/Nuvio catalogue search is off, so Cinemeta is never contacted. */
     static boolean hasStremioApp(Context c) {
         return false;
     }

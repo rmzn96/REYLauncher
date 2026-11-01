@@ -164,12 +164,6 @@ public class SettingsActivity extends Activity {
         if (lang != null && !lang.isEmpty()) {
             I18n.setLang(this, lang);
         }
-        String token = getIntent().getStringExtra("tmdb_token");
-        if (token != null && !token.trim().isEmpty()) {
-            Suggestions.prefs(this).edit().putString(Suggestions.K_TOKEN, token.trim()).apply();
-            Suggestions.changed(this);
-            Toast.makeText(this, tr("TMDB connected", "TMDB bağlandı"), Toast.LENGTH_SHORT).show();
-        }
         String pg = getIntent().getStringExtra("page");
         if (pg != null && !pg.isEmpty()) {
             currentSection = resolvePageExtra(pg);
