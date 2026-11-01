@@ -40,8 +40,9 @@ public final class Scenes {
     public static final String LOOK_SCENES = "scenes";
     public static final String LOOK_CLASSIC = "classic";
     public static final String CUSTOM_ID = "custom";
-    public static final int MAX_CUSTOM_SCENES = 5;
-    public static final String[] CUSTOM_IDS = {"custom", "custom_2", "custom_3", "custom_4", "custom_5"};
+    /** REYLauncher: one "custom" scene, filled daily with Bing's photo of the day (BingWallpaper). */
+    public static final int MAX_CUSTOM_SCENES = 1;
+    public static final String[] CUSTOM_IDS = {"custom"};
 
     public static final String CLOCK_POS_LEFT = "left";
     public static final String CLOCK_POS_CENTER = "center";
@@ -128,18 +129,14 @@ public final class Scenes {
     };
 
     public static final Spec CUSTOM_SPEC = new Spec(
-            CUSTOM_ID, "Custom", "Özel",
+            CUSTOM_ID, "Bing photo of the day", "Bing günün fotoğrafı",
             null, null, null,
             false, false, false,
             68f, 190f, 48f,
             45f, 52f, false);
 
     public static final Spec[] CUSTOM_SPECS = {
-        CUSTOM_SPEC,
-        new Spec("custom_2", "Custom 2", "Özel 2", null, null, null, false, false, false, 68f, 190f, 48f, 45f, 52f, false),
-        new Spec("custom_3", "Custom 3", "Özel 3", null, null, null, false, false, false, 68f, 190f, 48f, 45f, 52f, false),
-        new Spec("custom_4", "Custom 4", "Özel 4", null, null, null, false, false, false, 68f, 190f, 48f, 45f, 52f, false),
-        new Spec("custom_5", "Custom 5", "Özel 5", null, null, null, false, false, false, 68f, 190f, 48f, 45f, 52f, false)
+        CUSTOM_SPEC
     };
 
     public static String customId(int slot) {
@@ -223,7 +220,7 @@ public final class Scenes {
     }
 
     public static List<String> getSceneOrder(Context c) {
-        String raw = prefs(c).getString("scene_order", "night,golden,water,fog,dawn,custom,custom_2,custom_3,custom_4,custom_5");
+        String raw = prefs(c).getString("scene_order", "night,golden,water,fog,dawn,custom");
         List<String> out = new ArrayList<>();
         for (String part : raw.split(",")) {
             String p = part.trim();
@@ -247,6 +244,15 @@ public final class Scenes {
             sb.append(order.get(i));
         }
         prefs(c).edit().putString("scene_order", sb.toString()).apply();
+    }
+
+    /** Enabled scene ids exactly as saved (includes the Bing scene even before its first photo). */
+    public static List<String> getEnabledSceneIdsRaw(Context c) {
+        List<String> out = new ArrayList<>();
+        for (String part : prefs(c).getString("scene_enabled", "night,golden,water,fog,dawn").split(",")) {
+            if (!part.trim().isEmpty()) out.add(part.trim());
+        }
+        return out;
     }
 
     public static List<String> getEnabledSceneIds(Context c) {

@@ -3043,31 +3043,24 @@ public class SettingsActivity extends Activity {
     }
 
     private String customSceneTitle(int slot) {
-        if (slot <= 1) return tr("Custom", "Özel");
-        return tr("Custom " + slot, "Özel " + slot);
+        return tr("Bing photo of the day", "Bing günün fotoğrafı");
     }
 
+    /** Fetches Bing's photo of the day for the Bing scene (and the Classic Bing background). */
     private void pickCustomSceneWallpaper(int slot) {
-        CustomMedia.showImageFilePicker(
-                this,
-                tr("Choose custom scene image", "Özel sahne görseli seçin") + (slot > 1 ? " (" + slot + ")" : ""),
-                false,
-                1920,
-                1080,
-                null,
-                null,
-                bmp -> {
-                    if (CustomMedia.setCustomSceneWallpaper(this, slot, bmp)) {
-                        Scenes.enableCustomScene(this, slot, true);
-                        rebuildMainRows();
-                        showStatusMsg(tr("Custom scene wallpaper updated.", "Özel sahne duvar kağıdı güncellendi."));
-                    } else {
-                        Toast.makeText(
-                                this,
-                                tr("Could not load selected image.", "Seçilen görsel yüklenemedi."),
-                                Toast.LENGTH_SHORT).show();
-                    }
-                });
+        showStatusMsg(tr("Getting Bing's photo of the day…", "Bing'in günün fotoğrafı alınıyor…"));
+        BingWallpaper.refreshNow(this, ok -> runOnUiThread(() -> {
+            if (isFinishing()) return;
+            if (ok) {
+                Scenes.enableCustomScene(this, 1, true);
+                rebuildMainRows();
+                String cap = BingWallpaper.caption(this);
+                showStatusMsg(cap.isEmpty() ? tr("Bing photo updated.", "Bing fotoğrafı güncellendi.") : cap);
+            } else {
+                Toast.makeText(this, tr("Could not get the Bing photo. Check the internet connection.",
+                        "Bing fotoğrafı alınamadı. İnternet bağlantısını kontrol edin."), Toast.LENGTH_SHORT).show();
+            }
+        }));
     }
 
     private void customSceneRow(int slot) {
@@ -3153,8 +3146,8 @@ public class SettingsActivity extends Activity {
             boolean enabled = Scenes.isSceneEnabled(this, cid);
             if (!enabled) {
                 String[] opts = {
-                    tr("Turn on Custom scene", "Özel sahneyi aç"),
-                    tr("Choose image…", "Görsel seç…")
+                    tr("Turn on Bing scene", "Bing sahnesini aç"),
+                    tr("Refresh photo now", "Fotoğrafı şimdi yenile")
                 };
                 dialog(labelText)
                         .setItems(opts, (d, which) -> {
@@ -3168,8 +3161,8 @@ public class SettingsActivity extends Activity {
                         .show();
             } else {
                 String[] opts = {
-                    tr("Choose image…", "Görsel seç…"),
-                    tr("Turn off Custom scene", "Özel sahneyi kapat")
+                    tr("Refresh photo now", "Fotoğrafı şimdi yenile"),
+                    tr("Turn off Bing scene", "Bing sahnesini kapat")
                 };
                 dialog(labelText)
                         .setItems(opts, (d, which) -> {
@@ -3198,27 +3191,21 @@ public class SettingsActivity extends Activity {
         list.addView(r, lp);
     }
 
+    /** Fetches Bing's photo of the day and uses it as the Classic background. */
     private void pickCustomClassicWallpaper() {
-        CustomMedia.showImageFilePicker(
-                this,
-                tr("Choose custom background image", "Özel arka plan görseli seçin"),
-                false,
-                1920,
-                1080,
-                null,
-                null,
-                bmp -> {
-                    if (CustomMedia.setCustomClassicWallpaper(this, bmp)) {
-                        Profiles.homePrefs(this).edit().putString("wallpaper", MainActivity.CUSTOM_WALL_KEY).apply();
-                        rebuildMainRows();
-                        showStatusMsg(tr("Custom background updated.", "Özel arka plan güncellendi."));
-                    } else {
-                        Toast.makeText(
-                                this,
-                                tr("Could not load selected image.", "Seçilen görsel yüklenemedi."),
-                                Toast.LENGTH_SHORT).show();
-                    }
-                });
+        showStatusMsg(tr("Getting Bing's photo of the day…", "Bing'in günün fotoğrafı alınıyor…"));
+        Profiles.homePrefs(this).edit().putString("wallpaper", MainActivity.CUSTOM_WALL_KEY).apply();
+        BingWallpaper.refreshNow(this, ok -> runOnUiThread(() -> {
+            if (isFinishing()) return;
+            rebuildMainRows();
+            if (ok) {
+                String cap = BingWallpaper.caption(this);
+                showStatusMsg(cap.isEmpty() ? tr("Bing background updated.", "Bing arka planı güncellendi.") : cap);
+            } else {
+                Toast.makeText(this, tr("Could not get the Bing photo. Check the internet connection.",
+                        "Bing fotoğrafı alınamadı. İnternet bağlantısını kontrol edin."), Toast.LENGTH_SHORT).show();
+            }
+        }));
     }
 
     private void customClassicPhotoRow(boolean checked) {
@@ -3258,7 +3245,7 @@ public class SettingsActivity extends Activity {
         r.addView(thumb, thlp);
 
         TextView l = new TextView(this);
-        l.setText(tr("Custom", "Özel"));
+        l.setText(tr("Bing photo of the day", "Bing günün fotoğrafı"));
         l.setTextColor(0xEBF4F4F6);
         l.setTypeface(Ui.font(this, "semibold"));
         Ui.textSize(l, 14.5f);
@@ -3294,10 +3281,10 @@ public class SettingsActivity extends Activity {
             }
             if (!checked) {
                 String[] opts = {
-                    tr("Use custom background", "Özel arka planı kullan"),
-                    tr("Choose image…", "Görsel seç…")
+                    tr("Use Bing background", "Bing arka planını kullan"),
+                    tr("Refresh photo now", "Fotoğrafı şimdi yenile")
                 };
-                dialog(tr("Custom", "Özel"))
+                dialog(tr("Bing photo of the day", "Bing günün fotoğrafı"))
                         .setItems(opts, (d, which) -> {
                             if (which == 0) {
                                 Profiles.homePrefs(this).edit().putString("wallpaper", MainActivity.CUSTOM_WALL_KEY).apply();

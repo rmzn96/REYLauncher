@@ -478,6 +478,7 @@ public class MainActivity extends Activity {
         LocalAdb.ensureKeepAliveWatchdog(this);
         LocalAdb.scheduleKeepAliveRepair(this, 1000L);
         LocalAdb.closeIfIdle(this);  // ADB goes off again once REYLauncher has finished using it
+        refreshBingPhoto();
         if (ambientShowcase || (getIntent() != null && "ambient".equals(getIntent().getStringExtra("panel")))) {
             if (getIntent() != null) getIntent().removeExtra("panel");
             enterAmbientShowcase();
@@ -1080,6 +1081,21 @@ public class MainActivity extends Activity {
     }
 
     static final String CUSTOM_WALL_KEY = "custom";
+
+    /** New Bing photo of the day (only when the Bing scene/background is on; once a day at most). */
+    void refreshBingPhoto() {
+        BingWallpaper.refreshIfStale(this, ok -> {
+            if (!ok) return;
+            handler.post(() -> {
+                if (isFinishing() || !resumed) return;
+                if (Scenes.isScenesLook(this)) {
+                    if (sceneHome != null) sceneHome.sceneView.syncSettings();
+                } else if (CUSTOM_WALL_KEY.equals(wallStyle)) {
+                    setWallpaper(wallStyle);
+                }
+            });
+        });
+    }
 
     Bitmap makeWallpaper(String style) {
         if (CUSTOM_WALL_KEY.equals(style)) {
@@ -4113,6 +4129,7 @@ public class MainActivity extends Activity {
         netIcon.setContentDescription(state == 2 ? "Online" : state == 1 ? "No internet" : "Offline");
         // Back online: refresh what needs the internet.
         if (state == 2 && back) {
+            refreshBingPhoto();
             Weather.refresh(this, true, this::updateWeather);
             loadHero();
         }
