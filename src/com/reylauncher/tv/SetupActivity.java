@@ -852,10 +852,6 @@ public class SetupActivity extends Activity {
         }
 
         // permMode == 2: Manual Setup
-        if (!Perms.hasLocation(this) && !askedLocation) {
-            askedLocation = true;
-            handler.postDelayed(() -> Perms.requestLocation(this), 600);
-        }
         title(tr("Finish Setting Up", "Kurulumu Tamamla"));
         TextView s = subtitle(tr("REYLauncher works best as the home screen. Allow these once; anything this TV doesn't support is skipped.",
                 "REYLauncher en iyi ana ekran olarak \u00e7al\u0131\u015f\u0131r. Bunlara bir kez izin verin; bu TV'nin desteklemedi\u011fi \u00f6zellikler atlan\u0131r."));
@@ -865,11 +861,6 @@ public class SetupActivity extends Activity {
         option(l, tr("Make REYLauncher the Home Screen", "REYLauncher'\u0131 Ana Ekran Yap"),
                 home ? tr("The Home button opens REYLauncher", "Ana Ekran d\u00fc\u011fmesi REYLauncher'\u0131 a\u00e7ar") : tr("Choose REYLauncher when asked", "Soruldu\u011funda REYLauncher'\u0131 se\u00e7in"), home,
                 () -> Perms.requestDefaultHome(this));
-        if (!Perms.hasLocation(this)) {
-            option(l, tr("Show the Wi-Fi Name", "Wi-Fi Ad\u0131n\u0131 G\u00f6ster"),
-                    tr("In Control Center (needs location access)", "Denetim Merkezi'nde (konum izni gerekir)"), false,
-                    () -> Perms.requestLocation(this));
-        }
         if (Perms.listenerSupported(this) && !Perms.hasListener(this)) {
             option(l, tr("Continue Watching", "\u0130zlemeye Devam Et"),
                     tr("Remember what you play in each app", "Her uygulamada ne oynatt\u0131\u011f\u0131n\u0131z\u0131 hat\u0131rla"), false, () -> Perms.requestListener(this));

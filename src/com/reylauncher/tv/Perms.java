@@ -12,7 +12,6 @@ import android.provider.Settings;
 
 /**
  * Permissions, asked for on screen wherever the TV allows it; adb is only the last resort.
- * - Location (Wi-Fi name): the normal runtime prompt.
  * - Power Off, Sleep Timer: REYLauncher's accessibility switch (no device admin is ever asked for).
  * - Notification access (Continue Watching, Do Not Disturb): the system's notification-access
  *   screen (Android 11+ opens REYLauncher's own switch directly).
@@ -29,12 +28,9 @@ final class Perms {
         return new ComponentName(a, MediaWatchService.class);
     }
 
+    /** REYLauncher does not ask for location (it was only used to show the Wi-Fi network name). */
     static boolean hasLocation(Activity a) {
-        try {
-            return a != null && a.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-        } catch (Throwable t) {
-            return false;
-        }
+        return false;
     }
 
     /** Some TVs (e.g. this office TV's Android 9 build) lack device admin entirely; nothing can enable it. */
@@ -91,7 +87,7 @@ final class Perms {
     }
 
     static void requestLocation(Activity a) {
-        if (!hasLocation(a)) a.requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQ_LOCATION);
+        // REYLauncher: no location permission.
     }
 
     static void requestAdmin(Activity a) {
