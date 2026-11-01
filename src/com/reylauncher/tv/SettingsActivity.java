@@ -62,7 +62,6 @@ public class SettingsActivity extends Activity {
             BUTTON_MAPPER = "Button mapper",
             QUICK = "Quick buttons",
             ADVANCED = "Advanced",
-            UPDATES = "Updates",
             ABOUT = "About",
             SHELF = "Top Shelf",
             PRESENT = "Presentation",
@@ -81,7 +80,6 @@ public class SettingsActivity extends Activity {
         {QUICK, "bolt"},
         {LANGUAGE, "globe"},
         {ADVANCED, "shield"},
-        {UPDATES, "update"},
         {ABOUT, "info"}
     };
 
@@ -147,8 +145,6 @@ public class SettingsActivity extends Activity {
             return BUTTON_MAPPER;
         } else if ("advanced".equalsIgnoreCase(pg)) {
             return ADVANCED;
-        } else if ("updates".equalsIgnoreCase(pg)) {
-            return UPDATES;
         } else if ("about".equalsIgnoreCase(pg)) {
             return ABOUT;
         } else if ("apps".equalsIgnoreCase(pg)) {
@@ -237,7 +233,6 @@ public class SettingsActivity extends Activity {
             case QUICK: return tr("Quick settings", "Hızlı ayarlar");
             case LANGUAGE: return tr("Language", "Dil");
             case ADVANCED: return tr("Advanced", "Gelişmiş");
-            case UPDATES: return tr("Updates", "Güncellemeler");
             case ABOUT: return tr("About", "Hakkında");
             default: return sec;
         }
@@ -712,9 +707,6 @@ public class SettingsActivity extends Activity {
                         break;
                     case ADVANCED:
                         pageAdvanced();
-                        break;
-                    case UPDATES:
-                        pageUpdates();
                         break;
                     case ABOUT:
                     default:
@@ -1483,56 +1475,6 @@ public class SettingsActivity extends Activity {
                 "CleanYourTV (Beta), bilgisayara ihtiyaç duymadan CleanYourTV debloat profillerini Yerel ADB üzerinden doğrudan TV'nizde çalıştırır. TV modelinizi seçin (veya yüklü sistem uygulaması paketlerine göre tarayın), stok başlatıcıları veya gereksiz uygulamaları devre dışı bırakın ve istediğiniz zaman tek dokunuşla geri yükleyin."));
 
         LocalAdb.probePortAsync(this, () -> runOnUiThread(this::refreshAll));
-    }
-
-    private boolean checkingLatestRelease = false;
-
-    void pageUpdates() {
-        section(tr("UPDATES", "GÜNCELLEMELER"));
-        row(tr("Automatic updates", "Otomatik güncellemeler"),
-                () -> AppUpdater.isAutoUpdateEnabled(this) ? tr("On", "Açık") : tr("Off", "Kapalı"),
-                () -> {
-                    boolean next = !AppUpdater.isAutoUpdateEnabled(this);
-                    AppUpdater.setAutoUpdateEnabled(this, next);
-                    refreshAll();
-                    showStatusMsg(next
-                            ? tr("Automatic updates enabled.", "Otomatik güncellemeler etkinleştirildi.")
-                            : tr("Automatic updates disabled.", "Otomatik güncellemeler devre dışı bırakıldı."));
-                    if (next) {
-                        AppUpdater.checkAutoUpdateIfNeeded(this);
-                    }
-                });
-        row(tr("Check for updates", "Güncellemeleri kontrol et"),
-                () -> tr("Check now ›", "Şimdi kontrol et ›"),
-                () -> AppUpdater.manualCheckAndPrompt(this, this::refreshAll));
-
-        section(tr("VERSION INFO", "SÜRÜM BİLGİSİ"));
-        infoRow(tr("Current version", "Mevcut sürüm"), "v" + AppUpdater.getCurrentVersion(this), null);
-        infoRowDynamic(tr("GitHub release latest version", "GitHub son sürüm"),
-                () -> {
-                    String latest = AppUpdater.getCachedLatestVersion(this);
-                    if (latest != null && !latest.isEmpty()) {
-                        return "v" + latest;
-                    }
-                    return checkingLatestRelease
-                            ? tr("Checking…", "Kontrol ediliyor…")
-                            : tr("Tap Check for updates", "Güncellemeleri kontrol et'e basın");
-                },
-                null);
-
-        infoNote(tr("Checks GitHub Releases (techgenius1/tvOS-Launcher) for the latest APK and installs updates directly on your TV.",
-                "En güncel APK için GitHub Sürümlerini (techgenius1/tvOS-Launcher) kontrol eder ve güncellemeleri doğrudan TV'nize kurar."));
-
-        if (!checkingLatestRelease) {
-            checkingLatestRelease = true;
-            refreshAll();
-            AppUpdater.checkForUpdates(this, (success, latestVersion, downloadUrl, updateAvailable, errorMsg) -> {
-                checkingLatestRelease = false;
-                if (!isFinishing()) {
-                    refreshAll();
-                }
-            });
-        }
     }
 
     void pageAbout() {

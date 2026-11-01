@@ -484,7 +484,6 @@ public class MainActivity extends Activity {
         handler.post(weatherTick);
         LocalAdb.ensureKeepAliveWatchdog(this);
         LocalAdb.scheduleKeepAliveRepair(this, 1000L);
-        AppUpdater.checkAutoUpdateIfNeeded(this);
         if (ambientShowcase || (getIntent() != null && "ambient".equals(getIntent().getStringExtra("panel")))) {
             if (getIntent() != null) getIntent().removeExtra("panel");
             enterAmbientShowcase();

@@ -362,7 +362,6 @@ final class LocalAdb {
             } catch (Throwable ignored) {
             }
 
-            cmds.add("appops set " + pkg + " REQUEST_INSTALL_PACKAGES allow 2>/dev/null");
             cmds.add("appops set " + pkg + " GET_USAGE_STATS allow 2>/dev/null");
             cmds.add("appops set " + pkg + " ACCESS_RESTRICTED_SETTINGS allow 2>/dev/null");
 
@@ -511,7 +510,6 @@ final class LocalAdb {
             cmds.add("cmd role remove-role-holder --user 0 android.app.role.HOME " + pkg + " 2>/dev/null");
             cmds.add("cmd package clear-package-preferred-activities " + pkg + " 2>/dev/null");
             cmds.add("appops set " + pkg + " MANAGE_EXTERNAL_STORAGE default 2>/dev/null");
-            cmds.add("appops set " + pkg + " REQUEST_INSTALL_PACKAGES default 2>/dev/null");
             cmds.add("appops set " + pkg + " GET_USAGE_STATS default 2>/dev/null");
             cmds.add("pm revoke " + pkg + " android.permission.ACCESS_FINE_LOCATION 2>/dev/null");
             cmds.add("pm revoke " + pkg + " android.permission.ACCESS_COARSE_LOCATION 2>/dev/null");
