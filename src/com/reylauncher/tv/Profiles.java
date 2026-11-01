@@ -21,6 +21,9 @@ import java.util.List;
  * The first profile ("p1") uses the original storage, so nothing is lost when profiles are added.
  */
 final class Profiles {
+    /** REYLauncher keeps a single profile: the switcher and the People settings page are off. */
+    static final boolean MULTI_USER = false;
+
     private Profiles() { }
 
     /** At most three profiles. */

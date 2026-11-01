@@ -141,13 +141,12 @@ final class Suggestions {
         return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    /** What this profile's top shelf shows (each profile chooses; older global setting as fallback; off by default). */
+    /**
+     * REYLauncher: recommendations and news are switched off for good, so nothing is fetched from
+     * JustWatch/TMDB/Stremio or news sites for the top shelf. Continue Watching still shows there.
+     */
     static String shelf(Context c) {
-        String own = Profiles.homePrefs(c).getString(K_SHELF, null);
-        if (own != null) return own;
-        SharedPreferences p = prefs(c);
-        if (!p.contains(K_SHELF)) return SHELF_NONE;
-        return p.getString(K_SHELF, SHELF_NONE);
+        return SHELF_NONE;
     }
 
     static void setShelf(Context c, String value) {

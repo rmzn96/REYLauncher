@@ -4330,12 +4330,9 @@ public class MainActivity extends Activity {
         resetIdle();
     }
 
-    /** Seconds without input before the dock slides away (Settings -> Home); 0 = never. */
+    /** REYLauncher: the idle full-screen carousel is off; Home stays as it is until the TV's own screensaver. */
     int idleSeconds() {
-        int sec = Profiles.homePrefs(this).getInt("idle_sec", 20);
-        // REYLauncher carousel chosen as the screensaver: it always takes over when idle.
-        if (sec == 0 && !getSharedPreferences("screensaver", MODE_PRIVATE).getBoolean("allow", true)) sec = 20;
-        return sec;
+        return 0;
     }
 
     final Runnable idleRunnable = this::enterIdle;
@@ -4532,6 +4529,7 @@ public class MainActivity extends Activity {
      * one, plus Add User.
      */
     void showProfilePicker(boolean onWake) {
+        if (!Profiles.MULTI_USER) return;  // REYLauncher: one user, no "Who's Watching?" switcher
         dropPicker();
         popoverReturn = onWake ? null : (Scenes.isScenesLook(this) && sceneHome != null ? sceneHome.whoBar : avatarView);
         stopSway(null);

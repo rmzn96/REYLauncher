@@ -74,7 +74,6 @@ public class SettingsActivity extends Activity {
         {LOOK_SCENES, "scene"},
         {WEATHER, "cloud"},
         {APPS, "apps"},
-        {PROFILES, "person"},
         {CONTROL_PANEL, "sliders"},
         {BUTTON_MAPPER, "remote"},
         {QUICK, "bolt"},
@@ -940,14 +939,6 @@ public class SettingsActivity extends Activity {
                     boolean on = !Profiles.homePrefs(this).getBoolean("cw_enabled", false);
                     Profiles.homePrefs(this).edit().putBoolean("cw_enabled", on).apply();
                 });
-        row(tr("Classic Top Shelf suggestions", "Klasik Üst Raf önerileri"), () -> {
-            switch (Suggestions.shelf(this)) {
-                case Suggestions.SHELF_RECS: return tr("Recommendations", "Öneriler");
-                case Suggestions.SHELF_NEWS: return tr("News", "Haberler");
-                case Suggestions.SHELF_NONE: return tr("Off", "Kapalı");
-                default: return tr("Recommendations & News", "Öneriler ve Haberler");
-            }
-        }, () -> openSubMenu("top_shelf"));
         row(tr("Clear Continue Watching history", "İzlemeye Devam Et geçmişini temizle"),
                 () -> "",
                 () -> {
@@ -1343,19 +1334,8 @@ public class SettingsActivity extends Activity {
                 () -> Perms.hasListener(this) ? tr("Allowed", "İzin verildi")
                         : Perms.listenerSupported(this) ? tr("Allow…", "İzin ver…") : tr("Not on this TV", "Bu TV'de yok"),
                 () -> Perms.requestListener(this));
-        row(tr("Navigation click sounds", "Gezinme tıklama sesleri"),
-                () -> Clicks.enabled(this) ? tr("On", "Açık") : tr("Off", "Kapalı"),
-                () -> Clicks.setEnabled(this, !Clicks.enabled(this)));
 
-        section(tr("PRESENTATION &CLASSIC SHELF", "SUNUM VE KLASİK ÜST RAF"));
-        row(tr("Classic Top Shelf content", "Klasik Üst Raf içeriği"), () -> {
-            switch (Suggestions.shelf(this)) {
-                case Suggestions.SHELF_RECS: return tr("Recommendations", "Öneriler");
-                case Suggestions.SHELF_NEWS: return tr("News", "Haberler");
-                case Suggestions.SHELF_NONE: return tr("Off", "Kapalı");
-                default: return tr("Recommendations & News", "Öneriler ve Haberler");
-            }
-        }, () -> openSubMenu("top_shelf"));
+        section(tr("SETUP", "KURULUM"));
         row(tr("Run first-time setup again…", "İlk kurulumu tekrar çalıştır…"),
                 () -> "›",
                 () -> {
@@ -1465,9 +1445,6 @@ public class SettingsActivity extends Activity {
         row(tr("Restore debloated apps…", "Debloat edilen uygulamaları geri yükle…"),
                 () -> tr("Restore ›", "Geri Yükle ›"),
                 () -> openSubMenu("cyt_restore"));
-        row(tr("Ad-blocking Private DNS (AdGuard)", "Reklam engelleyici Özel DNS (AdGuard)"),
-                () -> CleanYourTv.isAdguardDnsActive(this) ? tr("On", "Açık") : tr("Off", "Kapalı"),
-                () -> CleanYourTv.toggleAdguardDns(this, this::refreshAll));
 
         infoNote(tr("CleanYourTV (Beta) runs the CleanYourTV debloat profiles directly on your TV over Local ADB without needing a PC. Choose your TV model (or scan by installed system app packages), disable stock launchers or bloatware, and restore them anytime with one tap.",
                 "CleanYourTV (Beta), bilgisayara ihtiyaç duymadan CleanYourTV debloat profillerini Yerel ADB üzerinden doğrudan TV'nizde çalıştırır. TV modelinizi seçin (veya yüklü sistem uygulaması paketlerine göre tarayın), stok başlatıcıları veya gereksiz uygulamaları devre dışı bırakın ve istediğiniz zaman tek dokunuşla geri yükleyin."));

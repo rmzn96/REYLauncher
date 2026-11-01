@@ -16,8 +16,9 @@ final class Clicks {
     private Clicks() {
     }
 
+    /** REYLauncher: navigation sounds are off. */
     static boolean enabled(Context c) {
-        return c.getSharedPreferences("sounds", Context.MODE_PRIVATE).getBoolean("nav_sounds", false);
+        return false;
     }
 
     static void setEnabled(Context c, boolean on) {

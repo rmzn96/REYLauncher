@@ -235,8 +235,9 @@ final class Search {
         return out;
     }
 
+    /** REYLauncher: Stremio/Nuvio catalogue search is off, so Cinemeta is never contacted. */
     static boolean hasStremioApp(Context c) {
-        return Suggestions.installed(c, Suggestions.STREMIO.pkg) || Suggestions.installed(c, Suggestions.NUVIO.pkg);
+        return false;
     }
 
     /** "Open in Stremio" (or Nuvio) by IMDb id, after the services, when one of them is installed. */
