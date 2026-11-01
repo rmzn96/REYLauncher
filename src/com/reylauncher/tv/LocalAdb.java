@@ -172,6 +172,9 @@ final class LocalAdb {
             for (String part : existingAcc.split(":")) {
                 String trimmed = part == null ? "" : part.trim();
                 if (trimmed.isEmpty()) continue;
+                // Component names only (pkg/class): anything else is dropped, so nothing unexpected can
+                // reach the quoted shell argument this list is written into.
+                if (!trimmed.matches("[A-Za-z0-9_.$]+/[A-Za-z0-9_.$]+")) continue;
                 if (trimmed.equals(ourAcc) || trimmed.equals(ourShort)) continue;
                 // Exclude Wanbo HDMI observer accessibility service which intercepts & drops all remote keys
                 if (trimmed.contains("com.sdt.hdmi.MyAccessibilityService")
@@ -577,6 +580,7 @@ final class LocalAdb {
                 for (String part : existingAcc.split(":")) {
                     String trimmed = part == null ? "" : part.trim();
                     if (trimmed.isEmpty() || trimmed.equals(ourAcc) || trimmed.equals(ourShort)) continue;
+                    if (!trimmed.matches("[A-Za-z0-9_.$]+/[A-Za-z0-9_.$]+")) continue;  // component names only
                     if (cleanAcc.length() > 0) cleanAcc.append(':');
                     cleanAcc.append(trimmed);
                 }

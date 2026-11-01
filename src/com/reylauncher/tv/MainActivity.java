@@ -248,10 +248,6 @@ public class MainActivity extends Activity {
         // (this Mali-450 GPU is fill-rate bound, so every hidden full-screen layer costs frames).
         getWindow().setBackgroundDrawable(null);
         prefs = Profiles.homePrefs(this);
-        String initLang = getIntent() != null ? getIntent().getStringExtra("lang") : null;
-        if (initLang != null && !initLang.isEmpty()) {
-            I18n.setLang(this, initLang);
-        }
         focusedIndex = Math.max(0, prefs.getInt("last_classic_idx", 0));
         activeLang = I18n.getLang(this);
         activeLook = Scenes.getLook(this);
@@ -323,36 +319,15 @@ public class MainActivity extends Activity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        if (intent.hasExtra("dock_scale")) {
-            Scenes.setDockScalePercent(this, intent.getIntExtra("dock_scale", 100));
-        }
-        String lang = intent.getStringExtra("lang");
-        if (lang != null && !lang.isEmpty()) {
-            I18n.setLang(this, lang);
-            activeLang = I18n.getLang(this);
-            recreate();
-            return;
-        }
+        // REYLauncher: MainActivity must be exported (it is the Home screen), so it ignores the
+        // upstream developer hooks (lang, dock_scale, perf, search text) other apps could send.
         if (intent.getBooleanExtra("pick_profile", false)) {
             closeMenu();
             if (launchOverlay != null) finishLaunchReturn();
             showProfilePicker(true);
             return;
         }
-        // adb perf probe: --es perf weather|status|hero|dockglass|shadows hides one layer to measure its GPU cost.
-        String perf = intent.getStringExtra("perf");
-        if (perf != null) {
-            switch (perf) {
-                case "weather": weatherCard.setVisibility(View.GONE); break;
-                case "status": clockBox.setVisibility(View.GONE); break;
-                case "hero": heroFront.setVisibility(View.GONE); heroBack.setVisibility(View.GONE); break;
-                case "dockglass": if (dockRow != null) dockRow.setBackground(null); break;
-                case "shadows": for (View t : tiles) t.setElevation(0); break;
-                default: recreate(); break;
-            }
-            return;
-        }
-        // adb hook for screenshots: am start -n com.reylauncher.tv/.MainActivity --es panel cc|inputs|weather|recents
+        // Panels opened by REYLauncher's own overlays (cc, recents, ambient); any other value does nothing.
         String panel = intent.getStringExtra("panel");
         if (panel != null) {
             closeMenu();
@@ -362,7 +337,6 @@ public class MainActivity extends Activity {
             else if (panel.equals("recents")) RecentAppsOverlay.showInActivity(this);
             else if (panel.equals("inputs")) ControlPanelOverlay.openInputs(this, () -> showInputs(ccButton));
             else if (panel.equals("weather")) showWeather();
-            else if (panel.equals("search")) showSearch(intent.getStringExtra("q"));
             else if (panel.equals("ambient")) {
                 setIntent(intent);
                 enterAmbientShowcase();

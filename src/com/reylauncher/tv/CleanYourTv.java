@@ -186,6 +186,11 @@ public final class CleanYourTv {
 
     // ================================================================ Model Index & Parsing
 
+    /** Package names only ever reach `pm` commands if they look like one (letters, digits, _ and .). */
+    static boolean isSafePackageName(String p) {
+        return p != null && p.matches("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+");
+    }
+
     public static synchronized List<ModelEntry> loadIndex(Context c) {
         if (cachedModels != null) return cachedModels;
         List<ModelEntry> list = new ArrayList<>();
@@ -1720,6 +1725,7 @@ public final class CleanYourTv {
             return;
         }
 
+        if (!isSafePackageName(pkg)) return;
         AlertDialog progress = dialog(activity, disable
                 ? tr(activity, "Disabling Package…", "Paket Devre Dışı Bırakılıyor…")
                 : tr(activity, "Enabling Package…", "Paket Etkinleştiriliyor…"))
@@ -2194,7 +2200,7 @@ public final class CleanYourTv {
             // Set REYLauncher as default home role holder too
             commands.add("cmd role add-role-holder --user 0 android.app.role.HOME com.reylauncher.tv");
             for (String pkg : safePkgs) {
-                commands.add("pm disable-user --user 0 " + pkg);
+                if (isSafePackageName(pkg)) commands.add("pm disable-user --user 0 " + pkg);
             }
             commands.add("sync");
 
@@ -2394,7 +2400,7 @@ public final class CleanYourTv {
             Set<String> installed = fetchInstalledPackages(activity, null, null);
             List<String> commands = new ArrayList<>();
             for (String pkg : packagesToEnable) {
-                if (installed.isEmpty() || installed.contains(pkg)) {
+                if ((installed.isEmpty() || installed.contains(pkg)) && isSafePackageName(pkg)) {
                     commands.add("pm enable --user 0 " + pkg);
                 }
             }
