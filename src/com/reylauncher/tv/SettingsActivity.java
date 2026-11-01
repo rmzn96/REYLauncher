@@ -986,16 +986,6 @@ public class SettingsActivity extends Activity {
                 it.icon = new BitmapDrawable(getResources(), Glyphs.get("input", u(22), Color.WHITE));
                 out.add(it);
             }
-            if (hidden.contains(MainActivity.PRESENT_KEY)) {
-                HiddenAppItem it = new HiddenAppItem();
-                it.key = MainActivity.PRESENT_KEY;
-                it.pkg = getPackageName();
-                it.label = MainActivity.getCustomAppName(this, it.key, null, tr("Presentation", "Sunum"));
-                it.icon = new BitmapDrawable(getResources(), Glyphs.get("present", u(22), Color.WHITE));
-                it.launch = new Intent(this, com.reylauncher.tv.present.PresentationActivity.class)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                out.add(it);
-            }
             Collections.sort(out, (a, b) -> a.label.compareToIgnoreCase(b.label));
         } catch (Throwable ignored) {
         }
@@ -1358,17 +1348,6 @@ public class SettingsActivity extends Activity {
                 () -> Clicks.setEnabled(this, !Clicks.enabled(this)));
 
         section(tr("PRESENTATION &CLASSIC SHELF", "SUNUM VE KLASİK ÜST RAF"));
-        row(tr("Presentation mode", "Sunum modu"),
-                () -> com.reylauncher.tv.present.Presenter.enabled(this) ? tr("On", "Açık") : tr("Off", "Kapalı"),
-                () -> {
-                    boolean on = !com.reylauncher.tv.present.Presenter.enabled(this);
-                    com.reylauncher.tv.present.Presenter.set(this, com.reylauncher.tv.present.Presenter.KEY_ENABLED, on);
-                });
-        row(tr("Presentation address & QR code", "Sunum adresi ve QR kodu"),
-                () -> com.reylauncher.tv.present.Presenter.enabled(this)
-                        ? com.reylauncher.tv.present.Presenter.address().replace("http://", "")
-                        : tr("Turn on first", "Önce etkinleştirin"),
-                this::showPresentInfo);
         row(tr("Classic Top Shelf content", "Klasik Üst Raf içeriği"), () -> {
             switch (Suggestions.shelf(this)) {
                 case Suggestions.SHELF_RECS: return tr("Recommendations", "Öneriler");
@@ -1405,10 +1384,10 @@ public class SettingsActivity extends Activity {
 
         section(tr("STARTUP & KEEP ALIVE", "BAŞLANGIÇ VE KEEP ALIVE"));
         row(tr("Launch automatically on system boot", "Sistem açılışında otomatik başlat"),
-                () -> com.reylauncher.tv.present.BootReceiver.isLaunchOnBootEnabled(this) ? tr("On", "Açık") : tr("Off", "Kapalı"),
+                () -> BootReceiver.isLaunchOnBootEnabled(this) ? tr("On", "Açık") : tr("Off", "Kapalı"),
                 () -> {
-                    boolean next = !com.reylauncher.tv.present.BootReceiver.isLaunchOnBootEnabled(this);
-                    com.reylauncher.tv.present.BootReceiver.setLaunchOnBootEnabled(this, next);
+                    boolean next = !BootReceiver.isLaunchOnBootEnabled(this);
+                    BootReceiver.setLaunchOnBootEnabled(this, next);
                     refreshAll();
                     showStatusMsg(next
                             ? tr("REYLauncher will launch automatically after system boot.",
@@ -3919,35 +3898,5 @@ public class SettingsActivity extends Activity {
             focusFirstRow();
             showStatusMsg(tr("Location set to " + picked.name + ".", "Konum " + picked.name + " olarak ayarlandı."));
         }).setNegativeButton(tr("Cancel", "İptal"), null).show();
-    }
-
-    void showPresentInfo() {
-        if (!com.reylauncher.tv.present.Presenter.enabled(this)) {
-            Toast.makeText(this, tr("Turn on Presentation mode first", "Önce Sunum modunu açın"), Toast.LENGTH_SHORT).show();
-            return;
-        }
-        com.reylauncher.tv.present.Presenter.ensureRunning(this);
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.HORIZONTAL);
-        box.setGravity(Gravity.CENTER_VERTICAL);
-        int pad = u(16);
-        box.setPadding(pad, pad, pad, pad / 2);
-        ImageView qr = new ImageView(this);
-        qr.setImageBitmap(com.reylauncher.tv.present.Presenter.qr(u(110)));
-        qr.setBackgroundColor(Color.WHITE);
-        qr.setPadding(u(6), u(6), u(6), u(6));
-        box.addView(qr, new LinearLayout.LayoutParams(u(122), u(122)));
-        TextView info = new TextView(this);
-        String pin = com.reylauncher.tv.present.Presenter.pin(this);
-        info.setText(tr("Open on a phone or computer on the same Wi-Fi:\n\n", "Aynı Wi-Fi ağındaki telefon veya bilgisayarda açın:\n\n")
-                + com.reylauncher.tv.present.Presenter.address() + "\n\n"
-                + tr("Pairing code\n", "Eşleştirme kodu\n")
-                + pin.substring(0, 3) + " " + pin.substring(3));
-        info.setTextColor(Color.WHITE);
-        info.setTypeface(Ui.font(this, "medium"));
-        Ui.textSize(info, 14);
-        info.setPadding(u(18), 0, 0, 0);
-        box.addView(info);
-        dialog(tr("Send to this TV", "Bu TV'ye gönder")).setView(box).setPositiveButton(tr("Done", "Tamam"), null).show();
     }
 }

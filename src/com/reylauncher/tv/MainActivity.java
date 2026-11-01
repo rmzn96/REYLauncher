@@ -297,11 +297,6 @@ public class MainActivity extends Activity {
         buildGrid();
         applyLookMode();
         registerPackageReceiver();
-        // Presentation mode: run the admin server if enabled, and honour "Start on boot".
-        com.reylauncher.tv.present.Presenter.ensureRunning(this);
-        if (com.reylauncher.tv.present.Presenter.justBooted()) {
-            handler.postDelayed(() -> com.reylauncher.tv.present.Presenter.openOnBootOnce(this), 1500);
-        }
         wakeReceiver = new BroadcastReceiver() {
             @Override public void onReceive(Context c, Intent i) {
                 AirPlayGuard.check(c, true);
@@ -361,7 +356,6 @@ public class MainActivity extends Activity {
             else if (panel.equals("recents")) RecentAppsOverlay.showInActivity(this);
             else if (panel.equals("inputs")) ControlPanelOverlay.openInputs(this, () -> showInputs(ccButton));
             else if (panel.equals("weather")) showWeather();
-            else if (panel.equals("present")) com.reylauncher.tv.present.Presenter.open(this);
             else if (panel.equals("search")) showSearch(intent.getStringExtra("q"));
             else if (panel.equals("ambient")) {
                 setIntent(intent);
@@ -3241,7 +3235,6 @@ public class MainActivity extends Activity {
         addResolved(pm, Intent.CATEGORY_LEANBACK_LAUNCHER, pkgs, true);
         addResolved(pm, Intent.CATEGORY_LAUNCHER, pkgs, false);
         if (!pkgs.contains(TV_SETTINGS)) addSettingsEntry(pm);
-        if (com.reylauncher.tv.present.Presenter.enabled(this)) addPresentEntry();
         inputs = Inputs.list(this);
         if (Inputs.showCard(this) && (!inputs.isEmpty() || ControlPanelOverlay.hasCustomAction(this, ControlPanelOverlay.ACTION_INPUTS))) {
             addInputsEntry();
@@ -3352,22 +3345,6 @@ public class MainActivity extends Activity {
     }
 
     /** Presentation tile (shown while Presentation mode is on): tvOS-style card. */
-    void addPresentEntry() {
-        AppEntry e = new AppEntry();
-        e.key = PRESENT_KEY;
-        e.pkg = getPackageName();
-        e.defaultLabel = I18n.s(this, "Presentation", "Sunum");
-        e.label = getCustomAppName(this, e.key, null, e.defaultLabel);
-        e.system = true;
-        e.color = 0xFF4370FF;
-        e.launch = new Intent(this, com.reylauncher.tv.present.PresentationActivity.class)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        Bitmap b = com.reylauncher.tv.present.PresentIcon.banner(360, 216);
-        e.banner = new BitmapDrawable(getResources(), b);
-        e.icon = e.banner;
-        all.put(e.key, e);
-    }
-
     void addResolved(PackageManager pm, String category, Set<String> pkgs, boolean leanback) {
         Intent q = new Intent(Intent.ACTION_MAIN).addCategory(category);
         for (ResolveInfo ri : pm.queryIntentActivities(q, 0)) {

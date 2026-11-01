@@ -44,6 +44,8 @@ public class SetupActivity extends Activity {
     }
 
     final List<Step> steps = new ArrayList<>();
+    /** Step indices (hello 0, profile 1, look 2, weather 3, permissions 4, button mapper 5). */
+    static final int STEP_WEATHER = 3, STEP_PERMS = 4, STEP_BM = 5;
 
     static boolean done(Activity a) {
         return a.getSharedPreferences("setup", MODE_PRIVATE).getBoolean(K_DONE, false);
@@ -113,7 +115,6 @@ public class SetupActivity extends Activity {
         steps.add(this::profile);
         steps.add(this::look);
         steps.add(this::weather);
-        steps.add(this::presentation);
         steps.add(this::homeAndPermissions);
         steps.add(this::buttonMapperSetup);
         steps.add(this::finish_);
@@ -142,7 +143,7 @@ public class SetupActivity extends Activity {
         int target = intent.getIntExtra("step", savedStep);
         if (target != index || (lang != null && !lang.isEmpty())) {
             show(target, 0);
-        } else if (index == 5 || index == 6) {
+        } else if (index == STEP_PERMS || index == STEP_BM) {
             show(index, 0);
         }
     }
@@ -182,9 +183,9 @@ public class SetupActivity extends Activity {
             show(2, -1);
             return;
         }
-        if (index == 5 && permMode != 0) {
+        if (index == STEP_PERMS && permMode != 0) {
             permMode = 0;
-            show(5, -1);
+            show(STEP_PERMS, -1);
             return;
         }
         if (index > 0) show(index - 1, -1);
@@ -193,13 +194,13 @@ public class SetupActivity extends Activity {
 
     @Override
     public void onRequestPermissionsResult(int code, String[] p, int[] r) {
-        if (index == 5) show(5, 0);  // refresh the ticks
+        if (index == STEP_PERMS) show(STEP_PERMS, 0);  // refresh the ticks
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (index == 5 || index == 6) show(index, 0);
+        if (index == STEP_PERMS || index == STEP_BM) show(index, 0);
     }
 
     // ---------------------------------------------------------------- building blocks
@@ -711,7 +712,7 @@ public class SetupActivity extends Activity {
             next();
         });
         if (city.isEmpty()) Weather.refresh(this, true, () -> {
-            if (index == 3) show(3, 0);  // show the detected city
+            if (index == STEP_WEATHER) show(STEP_WEATHER, 0);  // show the detected city
         });
         dots();
     }
@@ -777,48 +778,6 @@ public class SetupActivity extends Activity {
                 .show();
     }
 
-    /** Presentation is for the whole TV: switch it on and choose its options here, once. */
-    void presentation() {
-        ImageView icon = new ImageView(this);
-        icon.setImageBitmap(com.reylauncher.tv.present.PresentIcon.banner(u(90) * 2, u(54) * 2));
-        icon.setClipToOutline(true);
-        GradientDrawable shape = new GradientDrawable();
-        shape.setCornerRadius(u(9));
-        icon.setBackground(shape);
-        LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(u(90), u(54));
-        ilp.bottomMargin = u(10);
-        page.addView(icon, ilp);
-        title(tr("Presentation", "Sunum"));
-        subtitle(tr("Images, videos and webpages sent from any phone or computer on the same Wi-Fi. For everyone on this TV.",
-                "Ayn\u0131 Wi-Fi a\u011f\u0131ndaki herhangi bir telefon veya bilgisayardan g\u00f6nderilen g\u00f6rseller, videolar ve web sayfalar\u0131."));
-        boolean on = com.reylauncher.tv.present.Presenter.enabled(this);
-        LinearLayout l = list();
-        option(l, tr("Use Presentation", "Sunumu Kullan"),
-                on ? tr("Adds a Presentation card to Home", "Ana Ekrana bir Sunum kart\u0131 ekler") : tr("Off", "Kapal\u0131"), on, () -> {
-            com.reylauncher.tv.present.Presenter.set(this, com.reylauncher.tv.present.Presenter.KEY_ENABLED, !on);
-            show(index, 0);
-            focusRow(0);
-        });
-        if (on) {
-            boolean boot = com.reylauncher.tv.present.Presenter.startOnBoot(this),
-                    awake = com.reylauncher.tv.present.Presenter.keepAwake(this);
-            option(l, tr("Start with the TV", "TV ile Ba\u015flat"),
-                    tr("Play as soon as the TV turns on (signage)", "TV a\u00e7\u0131l\u0131r a\u00e7\u0131lmaz oynatmaya ba\u015fla (tabela modu)"), boot, () -> {
-                com.reylauncher.tv.present.Presenter.set(this, com.reylauncher.tv.present.Presenter.KEY_BOOT, !boot);
-                show(index, 0);
-                focusRow(1);
-            });
-            option(l, tr("Keep Screen Awake", "Ekran\u0131 A\u00e7\u0131k Tut"),
-                    tr("No screensaver or sleep while presenting", "Sunum s\u0131ras\u0131nda ekran koruyucu veya uyku yok"), awake, () -> {
-                com.reylauncher.tv.present.Presenter.set(this, com.reylauncher.tv.present.Presenter.KEY_AWAKE, !awake);
-                show(index, 0);
-                focusRow(2);
-            });
-        }
-        option(l, tr("Continue", "Devam Et"), null, false, this::next);
-        dots();
-    }
-
     boolean askedLocation;
     int permMode = 0; // 0 = Choose Easy or Manual, 1 = Easy ADB Directions, 2 = Manual Setup
 
@@ -836,7 +795,7 @@ public class SetupActivity extends Activity {
                     () -> {
                         if (!LocalAdb.isAdbSettingEnabled(this)) {
                             permMode = 1;
-                            show(5, 1);
+                            show(STEP_PERMS, 1);
                         } else {
                             runEasyAdbGrant();
                         }
@@ -846,7 +805,7 @@ public class SetupActivity extends Activity {
                     false,
                     () -> {
                         permMode = 2;
-                        show(5, 1);
+                        show(STEP_PERMS, 1);
                     });
             option(l, tr("Continue", "Devam Et"), null, false, this::next);
             dots();
@@ -886,7 +845,7 @@ public class SetupActivity extends Activity {
                     false,
                     () -> {
                         permMode = 2;
-                        show(5, 1);
+                        show(STEP_PERMS, 1);
                     });
             dots();
             return;
@@ -958,7 +917,7 @@ public class SetupActivity extends Activity {
                 next();
             } else {
                 permMode = 1;
-                show(5, 0);
+                show(STEP_PERMS, 0);
                 new android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                         .setTitle(tr("ADB Debugging Needed", "ADB Hata Ayıklama Gerekli"))
                         .setMessage(tr(
@@ -967,7 +926,7 @@ public class SetupActivity extends Activity {
                         .setPositiveButton(tr("OK", "Tamam"), null)
                         .setNeutralButton(tr("Manual Setup", "Manuel Kurulum"), (d, w) -> {
                             permMode = 2;
-                            show(5, 1);
+                            show(STEP_PERMS, 1);
                         })
                         .show();
             }

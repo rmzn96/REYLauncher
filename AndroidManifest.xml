@@ -113,21 +113,10 @@
             </intent-filter>
         </service>
 
-        <!-- Presentation mode (ported from pb-marketer-tv): full-screen player + boot start. -->
-        <activity
-            android:name=".present.PresentationActivity"
-            android:exported="false"
-            android:launchMode="singleTask"
-            android:excludeFromRecents="true"
-            android:screenOrientation="landscape"
-            android:theme="@style/HomeTheme"
-            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density" />
-        <receiver android:name=".present.BootReceiver" android:exported="true">
+        <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter>
+                <!-- Only the system can send BOOT_COMPLETED, so no other app can trigger this. -->
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 
