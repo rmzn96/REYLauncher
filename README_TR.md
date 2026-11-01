@@ -1,3 +1,5 @@
+> **Bu fork REYLauncher**: Xiaomi TV Box S 3. nesil için kişisel sürüm. Otomatik güncelleme ve ağ sunucusu yok, ADB sadece gerektiğinde açık, Türkçe/İngilizce. Ayrıntılar: [REYLAUNCHER.md](REYLAUNCHER.md). Aşağıdaki metin orijinal tvOS Launcher README'sidir.
+
 # tvOS Launcher (`v2.0.5`)
 
 > 🇬🇧 **For English documentation and setup guide:** **[README.md (English)](README.md)**  
