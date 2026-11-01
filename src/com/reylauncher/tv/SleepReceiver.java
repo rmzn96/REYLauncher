@@ -2,42 +2,27 @@ package com.reylauncher.tv;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.app.admin.DeviceAdminReceiver;
-import android.app.admin.DevicePolicyManager;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 
 /**
  * Sleep support for Control Center: Power Off and the Sleep Timer put the TV to sleep through
- * DevicePolicyManager.lockNow(), which needs this app to be a (force-lock only) device admin:
- *   adb shell dpm set-active-admin com.reylauncher.tv/.SleepReceiver$Admin
+ * REYLauncher's accessibility service (GLOBAL_ACTION_LOCK_SCREEN, which sleeps the device).
+ * REYLauncher is not a device admin, so it can always be uninstalled normally.
  */
 public class SleepReceiver extends BroadcastReceiver {
-
-    /** Device-admin component (force-lock only). */
-    public static class Admin extends DeviceAdminReceiver { }
-
-    static ComponentName admin(Context c) {
-        return new ComponentName(c, Admin.class);
-    }
 
     static boolean canSleep(Context c) {
         return true;
     }
 
-    /** Projector-safe screen-off first (keeps Wanbo projector running); falls back to device admin / accessibility sleep. */
+    /** Real sleep through the accessibility service; a black screen-off overlay if the service is off. */
     static boolean sleepNow(Context c) {
-        if (ControlPanelOverlay.showScreenOff(c)) {
+        if (PowerService.sleep()) {
             return true;
         }
-        DevicePolicyManager dpm = c.getSystemService(DevicePolicyManager.class);
-        if (dpm != null && dpm.isAdminActive(admin(c))) {
-            dpm.lockNow();
-            return true;
-        }
-        return PowerService.sleep();
+        return ControlPanelOverlay.showScreenOff(c);
     }
 
     static PendingIntent pending(Context c) {

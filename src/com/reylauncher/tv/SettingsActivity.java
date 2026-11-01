@@ -1375,6 +1375,22 @@ public class SettingsActivity extends Activity {
         row(tr("Pair / Repair ADB connection", "ADB bağlantısını eşleştir / onar"),
                 () -> LocalAdb.isPaired(this) ? tr("Repair", "Onar") : tr("Pair now", "Şimdi eşleştir"),
                 this::pairOrRepairAdb);
+        row(tr("Turn ADB off now", "ADB'yi şimdi kapat"),
+                () -> LocalAdb.isAdbSettingEnabled(this) ? tr("ADB is on · Turn off ›", "ADB açık · Kapat ›") : tr("Off", "Kapalı"),
+                () -> LocalAdb.closeAdbNow(this, (ok, msg) -> runOnUiThread(() -> {
+                    refreshAll();
+                    showStatusMsg(ok
+                            ? tr("ADB is off and port 5555 is closed. REYLauncher's ADB key was deleted.",
+                                 "ADB kapatıldı ve 5555 portu kapandı. REYLauncher'ın ADB anahtarı silindi.")
+                            : tr("Port 5555 still answers. Turn off USB debugging in Developer options.",
+                                 "5555 portu hâlâ açık. Geliştirici seçeneklerinden USB hata ayıklamayı kapatın."));
+                })));
+        row(tr("Turn ADB off after each task", "İşlem bitince ADB'yi otomatik kapat"),
+                () -> LocalAdb.isAutoCloseEnabled(this) ? tr("On", "Açık") : tr("Off", "Kapalı"),
+                () -> {
+                    LocalAdb.setAutoCloseEnabled(this, !LocalAdb.isAutoCloseEnabled(this));
+                    refreshAll();
+                });
         row(tr("Check permissions", "İzinleri kontrol et"),
                 this::permissionsSummaryCount,
                 () -> openSubMenu("check_permissions"));
@@ -1382,7 +1398,10 @@ public class SettingsActivity extends Activity {
                 () -> tr("Revoke ›", "Kaldır ›"),
                 this::confirmRevokeAllPermissions);
 
-        section(tr("STARTUP & KEEP ALIVE", "BAŞLANGIÇ VE KEEP ALIVE"));
+        infoNote(tr("REYLauncher only uses ADB for setup and CleanYourTV, only through this box's own address (127.0.0.1), and turns ADB off again 3 minutes after its last use. While ADB is on, other devices on your network could ask to connect: never accept an \u201cAllow debugging?\u201d prompt you didn't start.",
+                "REYLauncher ADB'yi yalnızca kurulum ve CleanYourTV için, yalnızca kutunun kendi adresi (127.0.0.1) üzerinden kullanır ve son kullanımdan 3 dakika sonra ADB'yi yeniden kapatır. ADB açıkken ağınızdaki başka cihazlar bağlanmak isteyebilir: sizin başlatmadığınız bir \u201cHata ayıklamaya izin verilsin mi?\u201d sorusunu asla onaylamayın."));
+
+        section(tr("STARTUP & AUTO-REPAIR", "BAŞLANGIÇ VE OTOMATİK ONARIM"));
         row(tr("Launch automatically on system boot", "Sistem açılışında otomatik başlat"),
                 () -> BootReceiver.isLaunchOnBootEnabled(this) ? tr("On", "Açık") : tr("Off", "Kapalı"),
                 () -> {
@@ -1395,7 +1414,7 @@ public class SettingsActivity extends Activity {
                             : tr("Automatic launch on boot disabled.",
                                  "Sistem açılışında otomatik başlatma kapatıldı."));
                 });
-        row(tr("Keep Alive (Auto-repair permissions)", "Keep Alive (İzinleri otomatik onar)"),
+        row(tr("Auto-repair accessibility (no ADB)", "Erişilebilirliği otomatik onar (ADB'siz)"),
                 () -> LocalAdb.isKeepAliveEnabled(this) ? tr("On", "Açık") : tr("Off", "Kapalı"),
                 () -> {
                     boolean next = !LocalAdb.isKeepAliveEnabled(this);
@@ -1405,13 +1424,13 @@ public class SettingsActivity extends Activity {
                     }
                     refreshAll();
                     showStatusMsg(next
-                            ? tr("Keep Alive enabled — permissions will be monitored and restored automatically via ADB.",
-                                 "Keep Alive etkinleştirildi — izinler izlenecek ve ADB ile otomatik olarak onarılacak.")
-                            : tr("Keep Alive disabled.", "Keep Alive devre dışı bırakıldı."));
+                            ? tr("Auto-repair on: if the TV switches REYLauncher's accessibility off, it is switched back on.",
+                                 "Otomatik onarım açık: TV REYLauncher'ın erişilebilirlik iznini kapatırsa yeniden açılır.")
+                            : tr("Auto-repair off.", "Otomatik onarım kapalı."));
                 });
 
-        infoNote(tr("Some TVs disable Accessibility or other permissions automatically in the background. When Keep Alive is on, REYLauncher lightly checks permission status in the background without extra RAM or CPU load and automatically restores any disabled permissions via ADB.",
-                "Bazı TV'ler Erişilebilirlik veya diğer izinleri arka planda kendiliğinden kapatabilir. Keep Alive açıkken REYLauncher, ekstra RAM veya işlemci yükü oluşturmadan izin durumunu arka planda hafifçe kontrol eder ve kapanan izinleri ADB üzerinden otomatik olarak yeniden açar."));
+        infoNote(tr("Some TVs switch accessibility services off by themselves. With auto-repair on, REYLauncher switches its own Button Mapper service back on using the secure-settings permission granted once during setup. It needs no ADB connection and touches no other app's settings.",
+                "Bazı TV'ler erişilebilirlik servislerini kendiliğinden kapatır. Otomatik onarım açıkken REYLauncher, kurulumda bir kez verilen güvenli ayarlar izniyle yalnızca kendi Düğme Eşleyici servisini yeniden açar. ADB bağlantısı gerekmez ve başka uygulamaların ayarlarına dokunmaz."));
 
         section(tr("CLEANYOURTV (BETA)", "CLEANYOURTV (BETA)"));
         twoLineRow(tr("Choose TV model", "TV modelini seçin"),

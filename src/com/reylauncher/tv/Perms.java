@@ -3,7 +3,6 @@ package com.reylauncher.tv;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -14,7 +13,7 @@ import android.provider.Settings;
 /**
  * Permissions, asked for on screen wherever the TV allows it; adb is only the last resort.
  * - Location (Wi-Fi name): the normal runtime prompt.
- * - Device admin (Power Off, Sleep Timer): Android's "Activate device admin app?" screen.
+ * - Power Off, Sleep Timer: REYLauncher's accessibility switch (no device admin is ever asked for).
  * - Notification access (Continue Watching, Do Not Disturb): the system's notification-access
  *   screen (Android 11+ opens REYLauncher's own switch directly).
  * Some TVs (e.g. Android 9 builds) have no screen for the last two; only then is the
@@ -24,10 +23,6 @@ final class Perms {
     static final int REQ_LOCATION = 41;
 
     private Perms() {
-    }
-
-    static ComponentName admin(Activity a) {
-        return new ComponentName(a, SleepReceiver.Admin.class);
     }
 
     static ComponentName listener(Activity a) {
@@ -66,26 +61,14 @@ final class Perms {
         }
     }
 
+    /** Power Off / Sleep Timer work when REYLauncher's accessibility service is on (no device admin). */
     static boolean hasAdmin(Activity a) {
-        if (PowerService.instance != null) return true;
-        if (a == null) return false;
-        try {
-            DevicePolicyManager dpm = a.getSystemService(DevicePolicyManager.class);
-            return dpm != null && dpm.isAdminActive(admin(a));
-        } catch (Throwable t) {
-            return false;
-        }
+        return PowerService.instance != null;
     }
 
     /** Device admin actually works only when Android's device-policy service is on. */
     static boolean adminWorks(Activity a) {
-        if (a == null) return false;
-        try {
-            DevicePolicyManager dpm = a.getSystemService(DevicePolicyManager.class);
-            return dpm != null && a.getPackageManager().hasSystemFeature(PackageManager.FEATURE_DEVICE_ADMIN);
-        } catch (Throwable t) {
-            return false;
-        }
+        return false;  // REYLauncher never asks to be a device admin.
     }
 
     /** Android turns notification listeners off for other apps on low-RAM (1 GB) TVs. */
@@ -134,15 +117,6 @@ final class Perms {
                     .setNegativeButton(I18n.s(a, "Cancel", "\u0130ptal"), null).show();
             return;
         }
-        Intent i = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-                .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, admin(a))
-                .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                        I18n.s(a,
-                                "Lets REYLauncher turn the screen off for Power Off and the Sleep Timer. It can't do anything else.",
-                                "REYLauncher'\u0131n Kapatma ve Uyku Zamanlay\u0131c\u0131s\u0131 i\u00e7in ekran\u0131 kapatmas\u0131n\u0131 sa\u011flar. Ba\u015fka hi\u00e7bir i\u015flem yapamaz."));
-        if (tryStart(a, i)) return;
-        lastResort(a, I18n.s(a, "Power Off & Sleep Timer", "Kapatma ve Uyku Zamanlay\u0131c\u0131s\u0131"),
-                "adb shell dpm set-active-admin com.reylauncher.tv/.SleepReceiver\\$Admin");
     }
 
     static void requestListener(Activity a) {

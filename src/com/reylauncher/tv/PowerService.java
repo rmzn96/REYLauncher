@@ -27,13 +27,11 @@ public class PowerService extends AccessibilityService {
     private Runnable onDone;
     private int step;
 
-    // Optional long-press volume button repeat fix (matching tvOS 2.0.4 RemapService, off by default)
+    // Long-press volume fix: repeats volume steps while the key is held, from the key events this
+    // accessibility service already receives (no raw input reading).
     private android.media.AudioManager audioManager;
     private int volDir = 0;
     private long volDownTime = 0L;
-    private volatile boolean volWatchActive = false;
-    private volatile boolean volWatchConnected = false;
-    private Thread volWatchThread;
 
     private final Runnable volRepeatRunnable = new Runnable() {
         @Override
@@ -73,43 +71,11 @@ public class PowerService extends AccessibilityService {
     }
 
     void syncVolumeHoldFix() {
-        boolean enabled = ButtonMapper.isVolumeHoldFixEnabled(this);
-        if (!enabled) {
-            volWatchActive = false;
-            volWatchConnected = false;
+        if (!ButtonMapper.isVolumeHoldFixEnabled(this)) {
             volDir = 0;
             handler.removeCallbacks(volRepeatRunnable);
-            if (volWatchThread != null) {
-                volWatchThread.interrupt();
-                volWatchThread = null;
-            }
-            return;
-        }
-        if (audioManager == null) {
+        } else if (audioManager == null) {
             audioManager = getSystemService(android.media.AudioManager.class);
-        }
-        volWatchActive = true;
-        if (volWatchThread == null || !volWatchThread.isAlive()) {
-            volWatchThread = new Thread(() -> {
-                while (volWatchActive && instance == this) {
-                    boolean connected = LocalAdb.watchVolumeKeys(
-                            this,
-                            (dir, down) -> {
-                                volWatchConnected = true;
-                                handler.post(() -> onVolumeKeyState(dir, down));
-                            },
-                            () -> volWatchActive && instance == this);
-                    volWatchConnected = false;
-                    if (!volWatchActive || instance != this) break;
-                    try {
-                        Thread.sleep(connected ? 2000L : 5000L);
-                    } catch (InterruptedException e) {
-                        break;
-                    }
-                }
-            }, "tvos-vol-watch");
-            volWatchThread.setDaemon(true);
-            volWatchThread.start();
         }
     }
 
@@ -155,7 +121,7 @@ public class PowerService extends AccessibilityService {
             }
             if (code == android.view.KeyEvent.KEYCODE_VOLUME_UP
                     || code == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) {
-                if (!volWatchConnected && ButtonMapper.isVolumeHoldFixEnabled(this)) {
+                if (ButtonMapper.isVolumeHoldFixEnabled(this)) {
                     int dir = (code == android.view.KeyEvent.KEYCODE_VOLUME_UP) ? 1 : -1;
                     int action = event.getAction();
                     if (action == android.view.KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
@@ -196,20 +162,14 @@ public class PowerService extends AccessibilityService {
 
     @Override
     public void onDestroy() {
-        volWatchActive = false;
-        volWatchConnected = false;
         volDir = 0;
         handler.removeCallbacks(volRepeatRunnable);
-        if (volWatchThread != null) {
-            volWatchThread.interrupt();
-            volWatchThread = null;
-        }
         ControlPanelOverlay.dismiss();
         RecentAppsOverlay.dismiss();
         instance = null;
         Context appCtx = getApplicationContext();
         super.onDestroy();
-        // If Keep Alive is enabled and the TV OS disabled Accessibility on its own, restore it automatically
+        // If auto-repair is on and the TV switched Accessibility off on its own, switch it back on (no ADB).
         LocalAdb.scheduleKeepAliveRepair(appCtx, 2000L);
     }
 

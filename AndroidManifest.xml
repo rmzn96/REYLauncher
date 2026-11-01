@@ -24,6 +24,9 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <!-- Granted once during setup (pm grant over ADB, then ADB is switched off again). Lets the app
+         turn its own accessibility switch back on and turn ADB off without an ADB connection. -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
 
     <queries>
         <intent>
@@ -78,17 +81,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Control Center: Power Off / Sleep Timer (force-lock device admin only). -->
-        <receiver
-            android:name=".SleepReceiver$Admin"
-            android:exported="true"
-            android:label="REYLauncher sleep"
-            android:permission="android.permission.BIND_DEVICE_ADMIN">
-            <meta-data android:name="android.app.device_admin" android:resource="@xml/device_admin" />
-            <intent-filter>
-                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
-            </intent-filter>
-        </receiver>
         <receiver android:name=".SleepReceiver" android:exported="false" />
         <service
             android:name=".PowerService"
@@ -121,7 +113,7 @@
 
         <activity
             android:name=".SetupActivity"
-            android:exported="true"
+            android:exported="false"
             android:launchMode="singleTop"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
@@ -129,7 +121,7 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|smallestScreenSize|screenLayout|uiMode|density" />
         <activity
             android:name=".SettingsActivity"
-            android:exported="true"
+            android:exported="false"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="adjustNothing"

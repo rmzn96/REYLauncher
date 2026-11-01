@@ -57,14 +57,6 @@ final class LocalAdb {
         void onResult(boolean success, String message);
     }
 
-    interface VolumeKeyListener {
-        void onVolumeKey(int dir, boolean down);
-    }
-
-    interface BooleanSupplier {
-        boolean getAsBoolean();
-    }
-
     static volatile boolean portReachable = false;
     private static final android.os.Handler KEEP_ALIVE_HANDLER =
             new android.os.Handler(android.os.Looper.getMainLooper());
@@ -205,7 +197,7 @@ final class LocalAdb {
         if (c == null) return;
         final Context appCtx = c.getApplicationContext();
         if (!forceNow && !isKeepAliveEnabled(appCtx)) return;
-        if (!forceNow && !isPaired(appCtx)) return;
+        closeIfIdle(appCtx);
         if (repairInProgress) return;
         long now = android.os.SystemClock.uptimeMillis();
         if (lastRepairAttemptMs > 0L && (now - lastRepairAttemptMs) < REPAIR_COOLDOWN_MS) {
@@ -228,38 +220,122 @@ final class LocalAdb {
         });
     }
 
+    /**
+     * Turns REYLauncher's accessibility switch back on when the TV switched it off, using the
+     * WRITE_SECURE_SETTINGS permission granted once during setup. No ADB connection is used.
+     */
     private static void repairAccessibilityOnly(Context c, Callback cb) {
-        new Thread(() -> {
-            String pkg = c.getPackageName();
-            String existingAcc = "";
+        boolean ok = false;
+        if (canWriteSecureSettings(c)) {
             try {
-                existingAcc = Settings.Secure.getString(c.getContentResolver(), "enabled_accessibility_services");
-            } catch (Exception ignored) {
+                String existingAcc = Settings.Secure.getString(c.getContentResolver(), "enabled_accessibility_services");
+                ok = Settings.Secure.putString(c.getContentResolver(), "enabled_accessibility_services",
+                        buildCleanAccessibilityServicesList(c, existingAcc));
+                Settings.Secure.putInt(c.getContentResolver(), "accessibility_enabled", 1);
+            } catch (Throwable ignored) {
+                ok = false;
             }
-            String newAcc = buildCleanAccessibilityServicesList(c, existingAcc);
-            String script = "appops set " + pkg + " ACCESS_RESTRICTED_SETTINGS allow 2>/dev/null; "
-                    + "settings put secure enabled_accessibility_services '" + newAcc + "'; "
-                    + "settings put secure accessibility_enabled 1";
-            String[] hosts = {"127.0.0.1", localLanIp()};
-            for (String h : hosts) {
-                if (h == null || h.isEmpty()) continue;
-                if (!isPortOpen(h, 5555, 600)) continue;
+        }
+        if (cb != null) cb.onResult(ok, ok ? null : "NO_SECURE_SETTINGS");
+    }
+
+    static boolean canWriteSecureSettings(Context c) {
+        return c != null && c.checkSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED;
+    }
+
+    // ---- ADB is only switched on for a task (setup, CleanYourTV) and switched off again after it ----
+
+    private static final String K_AUTO_CLOSE = "auto_close_adb";
+    private static final String K_WE_USED_ADB = "we_used_adb";
+    private static final long AUTO_CLOSE_AFTER_MS = 3 * 60_000L;
+    private static volatile long lastAdbUseMs = 0L;
+    private static Context autoCloseCtx;
+    private static final Runnable AUTO_CLOSE = () -> {
+        Context ctx = autoCloseCtx;
+        if (ctx != null) closeIfIdle(ctx);
+    };
+
+    static boolean isAutoCloseEnabled(Context c) {
+        return c.getSharedPreferences("adb_state", Context.MODE_PRIVATE).getBoolean(K_AUTO_CLOSE, true);
+    }
+
+    static void setAutoCloseEnabled(Context c, boolean on) {
+        c.getSharedPreferences("adb_state", Context.MODE_PRIVATE).edit().putBoolean(K_AUTO_CLOSE, on).apply();
+        if (on) closeIfIdle(c);
+    }
+
+    /** Called on every ADB use: remembers it, and schedules switching ADB off a few minutes later. */
+    private static void markAdbUsed(Context c) {
+        Context appCtx = c.getApplicationContext();
+        autoCloseCtx = appCtx;
+        lastAdbUseMs = android.os.SystemClock.uptimeMillis();
+        appCtx.getSharedPreferences("adb_state", Context.MODE_PRIVATE).edit().putBoolean(K_WE_USED_ADB, true).apply();
+        KEEP_ALIVE_HANDLER.removeCallbacks(AUTO_CLOSE);
+        KEEP_ALIVE_HANDLER.postDelayed(AUTO_CLOSE, AUTO_CLOSE_AFTER_MS + 1_000L);
+    }
+
+    /** Switches ADB off when REYLauncher used it and nothing has used it for a few minutes. */
+    static void closeIfIdle(Context c) {
+        if (c == null) return;
+        Context appCtx = c.getApplicationContext();
+        if (!isAutoCloseEnabled(appCtx)) return;
+        if (!appCtx.getSharedPreferences("adb_state", Context.MODE_PRIVATE).getBoolean(K_WE_USED_ADB, false)) return;
+        long idle = android.os.SystemClock.uptimeMillis() - lastAdbUseMs;
+        if (lastAdbUseMs != 0L && idle < AUTO_CLOSE_AFTER_MS) return;
+        closeAdbNow(appCtx, null);
+    }
+
+    /**
+     * Turns ADB (USB and network debugging, port 5555) off and deletes REYLauncher's ADB key, so the
+     * next ADB task asks "Allow debugging?" on the TV again. Uses WRITE_SECURE_SETTINGS when granted,
+     * otherwise one last shell command over the open connection.
+     */
+    static void closeAdbNow(Context c, Callback cb) {
+        final Context appCtx = c.getApplicationContext();
+        new Thread(() -> {
+            boolean viaSettings = false;
+            if (canWriteSecureSettings(appCtx)) {
                 try {
-                    runShellCommand(c, h, 5555, script);
-                    portReachable = true;
-                    setPaired(c, true);
-                    if (cb != null) cb.onResult(true, null);
-                    return;
-                } catch (Exception ignored) {
-                }
+                    Settings.Global.putInt(appCtx.getContentResolver(), "adb_wifi_enabled", 0);
+                } catch (Throwable ignored) { }
+                try {
+                    viaSettings = Settings.Global.putInt(appCtx.getContentResolver(), Settings.Global.ADB_ENABLED, 0);
+                } catch (Throwable ignored) { }
             }
-            if (cb != null) cb.onResult(false, "PORT_CLOSED");
-        }, "local-adb-acc").start();
+            if (!viaSettings && isPortOpen("127.0.0.1", 5555, 400)) {
+                try {
+                    // adbd stops while running this, so the connection dropping is expected.
+                    runShellCommandOutput(appCtx, "127.0.0.1", 5555,
+                            "settings put global adb_wifi_enabled 0; settings put global adb_enabled 0");
+                } catch (Throwable ignored) { }
+            }
+            forgetKey(appCtx);
+            appCtx.getSharedPreferences("adb_state", Context.MODE_PRIVATE).edit().putBoolean(K_WE_USED_ADB, false).apply();
+            lastAdbUseMs = 0L;
+            KEEP_ALIVE_HANDLER.removeCallbacks(AUTO_CLOSE);
+            try {
+                Thread.sleep(1500L);
+            } catch (InterruptedException ignored) { }
+            boolean stillOpen = isPortOpen("127.0.0.1", 5555, 500);
+            portReachable = stillOpen;
+            if (cb != null) cb.onResult(!stillOpen, stillOpen ? "PORT_STILL_OPEN" : null);
+        }, "local-adb-close").start();
+    }
+
+    /** Deletes REYLauncher's ADB key pair; a new one (and a new "Allow debugging?" prompt) is made on next use. */
+    static void forgetKey(Context c) {
+        cachedKeyPair = null;
+        try {
+            new File(c.getFilesDir(), "adb_rsa.priv").delete();
+            new File(c.getFilesDir(), "adb_rsa.pub").delete();
+        } catch (Throwable ignored) { }
+        setPaired(c, false);
     }
 
     static void probePortAsync(Context c, Runnable onDone) {
         new Thread(() -> {
-            String[] hosts = {"127.0.0.1", localLanIp()};
+            String[] hosts = {"127.0.0.1"};
             boolean open = false;
             for (String h : hosts) {
                 if (h == null || h.isEmpty()) continue;
@@ -316,35 +392,14 @@ final class LocalAdb {
         }
     }
 
-    private static String localLanIp() {
-        try {
-            for (java.net.NetworkInterface ni : java.util.Collections.list(java.net.NetworkInterface.getNetworkInterfaces())) {
-                if (!ni.isUp() || ni.isLoopback()) continue;
-                for (java.net.InetAddress a : java.util.Collections.list(ni.getInetAddresses())) {
-                    if (a instanceof java.net.Inet4Address && !a.isLoopbackAddress()) {
-                        return a.getHostAddress();
-                    }
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
     static void grantAllPermissions(Context c, Callback cb) {
         new Thread(() -> {
             String pkg = c.getPackageName();
             List<String> cmds = new ArrayList<>();
 
-            // 1. Runtime Location permissions (only if not already granted)
-            try {
-                if (c.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
-                        != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                    cmds.add("pm grant " + pkg + " android.permission.ACCESS_FINE_LOCATION 2>/dev/null");
-                    cmds.add("pm grant " + pkg + " android.permission.ACCESS_COARSE_LOCATION 2>/dev/null");
-                }
-            } catch (Throwable ignored) {
-            }
+            // 1. Lets REYLauncher re-enable its own accessibility switch and turn ADB off again
+            //    later without any ADB connection (Settings.Secure / Settings.Global writes).
+            cmds.add("pm grant " + pkg + " android.permission.WRITE_SECURE_SETTINGS 2>/dev/null");
 
             // 2. Storage permissions (only if not already granted — avoids Android 11/12 StorageManagerService killUid loop!)
             try {
@@ -370,15 +425,6 @@ final class LocalAdb {
                 cmds.add("cmd notification allow_listener " + pkg + "/" + pkg + ".MediaWatchService 2>/dev/null");
             }
 
-            // 4. Device Admin (only if not already active)
-            try {
-                android.app.admin.DevicePolicyManager dpm = c.getSystemService(android.app.admin.DevicePolicyManager.class);
-                if (dpm == null || !dpm.isAdminActive(SleepReceiver.admin(c))) {
-                    cmds.add("dpm set-active-admin " + pkg + "/.SleepReceiver\\$Admin 2>/dev/null");
-                }
-            } catch (Throwable ignored) {
-            }
-
             // 5. Accessibility Service (never toggle accessibility_enabled 0, only update if needed)
             if (!ButtonMapper.isServiceEnabled(c) || hasConflictingAccessibilityService(c)) {
                 String existingAcc = "";
@@ -396,7 +442,7 @@ final class LocalAdb {
             cmds.add("cmd package set-home-activity --user 0 " + pkg + "/.MainActivity 2>/dev/null");
             cmds.add("cmd package set-home-activity " + pkg + "/.MainActivity 2>/dev/null");
 
-            String[] hosts = {"127.0.0.1", localLanIp()};
+            String[] hosts = {"127.0.0.1"};
             Exception lastErr = null;
             for (String h : hosts) {
                 if (h == null || h.isEmpty()) continue;
@@ -430,7 +476,7 @@ final class LocalAdb {
             cmds.add("cmd package set-home-activity --user 0 " + pkg + "/.MainActivity 2>/dev/null");
             cmds.add("cmd package set-home-activity " + pkg + "/.MainActivity 2>/dev/null");
 
-            String[] hosts = {"127.0.0.1", localLanIp()};
+            String[] hosts = {"127.0.0.1"};
             Exception lastErr = null;
             for (String h : hosts) {
                 if (h == null || h.isEmpty()) continue;
@@ -452,8 +498,7 @@ final class LocalAdb {
     }
 
     /**
-     * Revokes Device Admin, Accessibility, Notification Listener, Default Home, and runtime permissions
-     * so the user can cleanly uninstall the app even on TVs without a Device Admin settings screen.
+     * Revokes Accessibility, Notification Listener, Default Home and the ADB-granted permissions.
      */
     static void revokeAllPermissions(Context c, Callback cb) {
         if (c == null) {
@@ -467,12 +512,6 @@ final class LocalAdb {
         // 2. Revoke Device Admin and Accessibility directly via Android APIs (works even without ADB!)
         try {
             SleepReceiver.setTimer(appCtx, 0);
-        } catch (Throwable ignored) { }
-        try {
-            android.app.admin.DevicePolicyManager dpm = appCtx.getSystemService(android.app.admin.DevicePolicyManager.class);
-            if (dpm != null && dpm.isAdminActive(SleepReceiver.admin(appCtx))) {
-                dpm.removeActiveAdmin(SleepReceiver.admin(appCtx));
-            }
         } catch (Throwable ignored) { }
         try {
             if (PowerService.instance != null && android.os.Build.VERSION.SDK_INT >= 24) {
@@ -503,18 +542,15 @@ final class LocalAdb {
             }
 
             List<String> cmds = new ArrayList<>();
-            cmds.add("dpm remove-active-admin --user 0 " + pkg + "/.SleepReceiver\\$Admin 2>/dev/null");
-            cmds.add("dpm remove-active-admin " + pkg + "/.SleepReceiver\\$Admin 2>/dev/null");
             cmds.add("settings put secure enabled_accessibility_services '" + cleanAcc + "'");
             cmds.add("cmd notification disallow_listener " + pkg + "/" + pkg + ".MediaWatchService 2>/dev/null");
             cmds.add("cmd role remove-role-holder --user 0 android.app.role.HOME " + pkg + " 2>/dev/null");
             cmds.add("cmd package clear-package-preferred-activities " + pkg + " 2>/dev/null");
             cmds.add("appops set " + pkg + " MANAGE_EXTERNAL_STORAGE default 2>/dev/null");
             cmds.add("appops set " + pkg + " GET_USAGE_STATS default 2>/dev/null");
-            cmds.add("pm revoke " + pkg + " android.permission.ACCESS_FINE_LOCATION 2>/dev/null");
-            cmds.add("pm revoke " + pkg + " android.permission.ACCESS_COARSE_LOCATION 2>/dev/null");
+            cmds.add("pm revoke " + pkg + " android.permission.WRITE_SECURE_SETTINGS 2>/dev/null");
 
-            String[] hosts = {"127.0.0.1", localLanIp()};
+            String[] hosts = {"127.0.0.1"};
             boolean adbRan = false;
             for (String h : hosts) {
                 if (h == null || h.isEmpty()) continue;
@@ -529,86 +565,6 @@ final class LocalAdb {
         }, "local-adb-revoke").start();
     }
 
-    /**
-     * Streams `getevent -l 2>/dev/null` over the already-paired local ADB socket (without prompting)
-     * so long-press volume up/down works even on TVs where the system consumes volume keys before
-     * AccessibilityService.onKeyEvent. Matches tvOS 2.0.4 (E5.smali + I.smali).
-     */
-    static boolean watchVolumeKeys(Context c, VolumeKeyListener listener, BooleanSupplier shouldRun) {
-        String[] hosts = {"127.0.0.1", localLanIp()};
-        for (String host : hosts) {
-            if (host == null || host.isEmpty()) continue;
-            if (!isPortOpen(host, 5555, 500)) continue;
-            try {
-                KeyPair kp = getOrCreateKeyPair(c);
-                try (Socket socket = new Socket()) {
-                    socket.connect(new InetSocketAddress(host, 5555), 2500);
-                    socket.setSoTimeout(3000);
-                    DataInputStream in = new DataInputStream(socket.getInputStream());
-                    OutputStream out = socket.getOutputStream();
-
-                    byte[] banner = "host::\0".getBytes(StandardCharsets.UTF_8);
-                    sendPacket(out, A_CNXN, A_VERSION, MAX_PAYLOAD, banner);
-
-                    Packet p = readPacket(in);
-                    if (p.command == A_AUTH && p.arg0 == ADB_AUTH_TOKEN) {
-                        byte[] sig = signToken((RSAPrivateKey) kp.getPrivate(), p.data);
-                        sendPacket(out, A_AUTH, ADB_AUTH_SIGNATURE, 0, sig);
-                        p = readPacket(in);
-                    }
-                    if (p.command != A_CNXN) {
-                        continue;
-                    }
-                    setPaired(c, true);
-
-                    socket.setSoTimeout(0);
-                    int localId = 1;
-                    byte[] openData = "shell:getevent -l 2>/dev/null\0".getBytes(StandardCharsets.UTF_8);
-                    sendPacket(out, A_OPEN, localId, 0, openData);
-
-                    StringBuilder lineBuf = new StringBuilder();
-                    while (shouldRun.getAsBoolean()) {
-                        Packet pkt = readPacket(in);
-                        if (pkt.command == A_WRTE) {
-                            sendPacket(out, A_OKAY, localId, pkt.arg0, null);
-                            if (pkt.data != null && pkt.data.length > 0) {
-                                lineBuf.append(new String(pkt.data, StandardCharsets.UTF_8));
-                                int nl;
-                                while ((nl = lineBuf.indexOf("\n")) >= 0) {
-                                    String line = lineBuf.substring(0, nl).trim();
-                                    lineBuf.delete(0, nl + 1);
-                                    if (!line.contains("EV_KEY")) continue;
-                                    String[] parts = line.split("\\s+");
-                                    for (int i = 0; i + 2 < parts.length; i++) {
-                                        if ("EV_KEY".equals(parts[i])) {
-                                            String key = parts[i + 1];
-                                            String state = parts[i + 2];
-                                            int dir = "KEY_VOLUMEUP".equals(key) ? 1
-                                                    : ("KEY_VOLUMEDOWN".equals(key) ? -1 : 0);
-                                            if (dir != 0 && ("DOWN".equals(state) || "UP".equals(state))) {
-                                                listener.onVolumeKey(dir, "DOWN".equals(state));
-                                            }
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (lineBuf.length() > 4096) {
-                                    lineBuf.setLength(0);
-                                }
-                            }
-                        } else if (pkt.command == A_CLSE) {
-                            sendPacket(out, A_CLSE, localId, pkt.arg0, null);
-                            break;
-                        }
-                    }
-                    return true;
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        return false;
-    }
-
     static void forceStopPackagesAsync(Context c, java.util.List<String> pkgs) {
         if (pkgs == null || pkgs.isEmpty() || !isPaired(c)) return;
         new Thread(() -> {
@@ -619,7 +575,7 @@ final class LocalAdb {
                 sb.append("am force-stop ").append(p);
             }
             if (sb.length() == 0) return;
-            String[] hosts = {"127.0.0.1", localLanIp()};
+            String[] hosts = {"127.0.0.1"};
             for (String h : hosts) {
                 if (h == null || h.isEmpty()) continue;
                 if (!isPortOpen(h, 5555, 400)) continue;
@@ -635,10 +591,11 @@ final class LocalAdb {
     static boolean startActivityViaAdbAsync(Context c, String pkg, String cls) {
         if (pkg == null || pkg.isEmpty() || !isPaired(c)) return false;
         new Thread(() -> {
+            if (!pkg.matches("[A-Za-z0-9_.]+") || (cls != null && !cls.matches("[A-Za-z0-9_.$]*"))) return;
             String cmd = (cls != null && !cls.isEmpty())
-                    ? ("am start -n " + pkg + "/" + cls)
+                    ? ("am start -n '" + pkg + "/" + cls + "'")
                     : ("monkey -p " + pkg + " -c android.intent.category.LAUNCHER 1");
-            String[] hosts = {"127.0.0.1", localLanIp()};
+            String[] hosts = {"127.0.0.1"};
             for (String h : hosts) {
                 if (h == null || h.isEmpty()) continue;
                 if (!isPortOpen(h, 5555, 400)) continue;
@@ -657,7 +614,7 @@ final class LocalAdb {
     }
 
     static String execShellOutput(Context c, String shellCmd) throws Exception {
-        String[] hosts = {"127.0.0.1", localLanIp()};
+        String[] hosts = {"127.0.0.1"};
         Exception lastErr = null;
         for (String h : hosts) {
             if (h == null || h.isEmpty()) continue;
@@ -680,7 +637,7 @@ final class LocalAdb {
      * (matching CleanYourTV's rule: "Run pm commands one per shell call, chained commands may silently stop after the first").
      */
     static boolean execShellSequential(Context c, List<String> commands, BatchProgressListener progress) {
-        String[] hosts = {"127.0.0.1", localLanIp()};
+        String[] hosts = {"127.0.0.1"};
         for (String h : hosts) {
             if (h == null || h.isEmpty()) continue;
             if (!isPortOpen(h, 5555, 600)) continue;
@@ -706,6 +663,8 @@ final class LocalAdb {
 
     private static List<String> runShellCommandsOnHost(
             Context c, String host, int port, List<String> commands, BatchProgressListener progress) throws Exception {
+        if (!"127.0.0.1".equals(host)) throw new Exception("LOOPBACK_ONLY");
+        markAdbUsed(c);
         KeyPair kp = getOrCreateKeyPair(c);
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(host, port), 2500);

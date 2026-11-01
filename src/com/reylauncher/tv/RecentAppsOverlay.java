@@ -958,6 +958,13 @@ public final class RecentAppsOverlay {
             MAIN.postDelayed(() -> closeSingleCard(c, child, cardW, screenH, unit, false), delay);
         }
         if (!allPkgs.isEmpty()) {
+            // Without ADB (the normal state), Android only lets apps end other apps' background processes.
+            try {
+                ActivityManager am = (ActivityManager) c.getSystemService(Context.ACTIVITY_SERVICE);
+                if (am != null) {
+                    for (String p : allPkgs) am.killBackgroundProcesses(p);
+                }
+            } catch (Exception ignored) { }
             LocalAdb.forceStopPackagesAsync(c, allPkgs);
         } else {
             final Context appCtx = c.getApplicationContext();

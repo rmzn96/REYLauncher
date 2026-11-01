@@ -477,6 +477,7 @@ public class MainActivity extends Activity {
         handler.post(weatherTick);
         LocalAdb.ensureKeepAliveWatchdog(this);
         LocalAdb.scheduleKeepAliveRepair(this, 1000L);
+        LocalAdb.closeIfIdle(this);  // ADB goes off again once REYLauncher has finished using it
         if (ambientShowcase || (getIntent() != null && "ambient".equals(getIntent().getStringExtra("panel")))) {
             if (getIntent() != null) getIntent().removeExtra("panel");
             enterAmbientShowcase();
